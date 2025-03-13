@@ -1,0 +1,27 @@
+/* Remove default react-calendar background */
+.react-calendar {
+  width: 100%;
+    background: transparent;
+    border: none;
+    color: white;
+  }
+  
+  /* Style calendar tiles */
+  .react-calendar__tile {
+    padding: 10px;
+    border-radius: 6px;
+    transition: 0.3s;
+  }
+  
+  /* Highlight selected day */
+  .react-calendar__tile--active {
+    background: #3b82f6 !important; /* Tailwind blue-500 */
+    color: white !important;
+    font-weight: bold;
+  }
+  
+  /* Adjust hover effect */
+  .react-calendar__tile:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  

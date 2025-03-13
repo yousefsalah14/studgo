@@ -1,0 +1,32 @@
+body {
+    overflow: hidden;
+  }
+  /* Customize scrollbar width */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  /* Scrollbar Track */
+  ::-webkit-scrollbar-track {
+    background: #1e1e2e; /* Dark background */
+    border-radius: 10px;
+  }
+  
+  /* Scrollbar Thumb */
+  ::-webkit-scrollbar-thumb {
+    background: #153872; /* Blue color (change as needed) */
+    border-radius: 10px;
+    transition: background 0.3s ease;
+  }
+  
+  /* On hover */
+  ::-webkit-scrollbar-thumb:hover {
+    background: #183064; /* Darker blue */
+  }
+  
+  /* Scrollbar corners (optional) */
+  ::-webkit-scrollbar-corner {
+    background: #1e1e2e;
+  }
+  

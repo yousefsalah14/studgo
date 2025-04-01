@@ -14,6 +14,15 @@ export default defineConfig({
     }
   },
   resolve: {
-    extensions: ['.js', '.jsx', '.json']
+    extensions: ['.js', '.jsx', '.json', '.css'],
+    alias: {
+      '@': '/src',
+      '@styles': '/src/styles'
+    }
+  },
+  css: {
+    modules: {
+      localsConvention: 'camelCase'
+    }
   }
 })

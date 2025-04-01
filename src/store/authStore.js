@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 export const useAuthStore = create((set, get) => ({
   accessToken: localStorage.getItem("accessToken") || null,
@@ -18,6 +19,7 @@ export const useAuthStore = create((set, get) => ({
       const token = `bearer ${data.data.accessToken}`;
       const decodedUser = jwtDecode(data.data.accessToken);
       localStorage.setItem("accessToken", token);
+      toast.success("Logged in successfully");
       set({ 
         accessToken: token, 
         currentUser: decodedUser, 
@@ -25,6 +27,7 @@ export const useAuthStore = create((set, get) => ({
         loading: false, 
       });
 
+     
       if (decodedUser.role === "Student") {
         window.location.href = "/"; 
       } else if (decodedUser.role === "StudentActivity") {

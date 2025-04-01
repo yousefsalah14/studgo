@@ -1,32 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Remove overflow hidden from body */
 body {
-    overflow: hidden;
-  }
-  /* Customize scrollbar width */
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* Customize scrollbar width */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  
-  /* Scrollbar Track */
-  ::-webkit-scrollbar-track {
-    background: #1e1e2e; /* Dark background */
-    border-radius: 10px;
-  }
-  
-  /* Scrollbar Thumb */
-  ::-webkit-scrollbar-thumb {
-    background: #153872; /* Blue color (change as needed) */
-    border-radius: 10px;
-    transition: background 0.3s ease;
-  }
-  
-  /* On hover */
-  ::-webkit-scrollbar-thumb:hover {
-    background: #183064; /* Darker blue */
-  }
-  
-  /* Scrollbar corners (optional) */
-  ::-webkit-scrollbar-corner {
-    background: #1e1e2e;
-  }
+  width: 8px;
+  height: 8px;
+}
+
+/* Scrollbar Track */
+::-webkit-scrollbar-track {
+  background: #1e1e2e; /* Dark background */
+  border-radius: 10px;
+}
+
+/* Scrollbar Thumb */
+::-webkit-scrollbar-thumb {
+  background: #153872; /* Blue color */
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+/* On hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #183064; /* Darker blue */
+}
+
+/* Scrollbar corners */
+::-webkit-scrollbar-corner {
+  background: #1e1e2e;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #153872 #1e1e2e;
+}
+
+/* Ensure smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Add some base styles for better text rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
   

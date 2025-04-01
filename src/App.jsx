@@ -19,6 +19,14 @@ import SaTalks from './components/SA/pages/SaTalks.jsx';
 import SaStudentActivities from './components/SA/pages/SaStudentActivities.jsx';
 import SaCalendar from './components/SA/pages/SaCalendar.jsx';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import {Toaster} from 'react-hot-toast'
+import ForgotPassword from './components/Auth/ForgetPassword.jsx';
+import ResetCode from './components/Auth/RestCode.jsx';
+import Profile from './components/student/pages/profile.jsx';
+import Events from './components/student/pages/Events.jsx';
+import Workshops from './components/student/pages/Workshops.jsx';
+import Calendar from './components/student/pages/Calendar.jsx';
+import Internships from './components/student/pages/Internships.jsx';
 
 // 🔥 New AuthRoute Component
 function AuthRoute({ children }) {
@@ -39,6 +47,11 @@ function App() {
     children: [
       { index: true, element: <ProtectedRoute roles={["Student"]}><Home /></ProtectedRoute> },
       { path: 'student-activities', element: <ProtectedRoute roles={["Student"]}><StudentActivityHome /></ProtectedRoute> },
+      { path: 'profile', element: <ProtectedRoute roles={["Student"]}><Profile /></ProtectedRoute> },
+      { path: 'calendar', element: <ProtectedRoute roles={["Student"]}><Calendar /></ProtectedRoute> },
+      { path: 'events', element: <ProtectedRoute roles={["Student"]}><Events /></ProtectedRoute> },
+      { path: 'workshops', element: <ProtectedRoute roles={["Student"]}><Workshops /></ProtectedRoute> },
+      { path: 'interns', element: <ProtectedRoute roles={["Student"]}><Internships /></ProtectedRoute> },
       { path: 'studentactivity/:id', element: <ProtectedRoute requiredRole="Student"><StudentActivityDetails /></ProtectedRoute> },
       
     ],
@@ -50,6 +63,8 @@ function App() {
     { path: 'register', element: <AuthRoute><Register /></AuthRoute> },
     { path: 'login', element: <AuthRoute><Login /></AuthRoute> },
     { path: '', element: <AuthRoute><Login /></AuthRoute> },
+    { path: 'forget-password', element: <AuthRoute><ForgotPassword /></AuthRoute> },
+    { path: 'reset-code', element: <AuthRoute><ResetCode /></AuthRoute> }
   ];
   const studentActivityRoutes = {
     path: 'student-activity',
@@ -66,11 +81,15 @@ function App() {
 
   const routes = createBrowserRouter([mainRoutes, studentActivityRoutes,...authRoutes]);
   const reactQueryConfig = new QueryClient({});
-  return(
+  return<>
+
     <QueryClientProvider client={reactQueryConfig}>
       <RouterProvider router={routes} />
+      <Toaster oastOptions={{
+    duration: 8000 }} />
     </QueryClientProvider>
-  );
+ 
+ </>
 
 }
 

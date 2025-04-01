@@ -15,7 +15,7 @@ function SAHome() {
             </div>
 
             {/* Right Section (Scrollable) */}
-            <div className="ml-[14%] md:ml-[20%] lg:ml-[16%] xl:ml-[14%] sm:ml-[10%] w-full h-screen overflow-y-auto bg-gray-800">
+            <div className="w-full ml-[14%] md:ml-[20%] lg:ml-[16%] xl:ml-[14%] sm:ml-[10%]  h-screen overflow-y-auto bg-gray-800">
                 <Navbar />
                 <div >
                     <Outlet />

@@ -1,5 +1,3 @@
-import { useContext } from "react";
-
 import WelcomeBanner from "../components/WelcomeBanner.jsx";
 import Card from "../components/Card.jsx";
 import Chart from "../components/Chart.jsx";
@@ -16,8 +14,8 @@ function SaMain() {
       const response = await axios.get(`https://studgov1.runasp.net/api/${type}/all`);
       return response.data.data;
     } catch (error) {
-      toast.error("Error fetching data");
-      return [];
+      toast.error(`Error fetching ${type} data`);
+      throw error;
     }
   };
 
@@ -26,6 +24,8 @@ function SaMain() {
     const { data, isError, isLoading, error } = useQuery({
       queryKey: ["data", type],
       queryFn: () => fetchData(type),
+      retry: 2,
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     });
 
     return {
@@ -41,6 +41,28 @@ function SaMain() {
   const talks = FetchCount("talks");
   const workshops = FetchCount("workshops");
   const members = FetchCount("members");
+
+  // Check if any query is loading
+  const isLoading = events.isLoading || talks.isLoading || workshops.isLoading || members.isLoading;
+  
+  // Check if any query has an error
+  const hasError = events.isError || talks.isError || workshops.isError || members.isError;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-red-500">Failed to load dashboard data. Please try again later.</div>
+      </div>
+    );
+  }
 
   // Chart Data
   const chartData = [

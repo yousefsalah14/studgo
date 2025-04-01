@@ -79,7 +79,7 @@ function EventCalendar() {
 
       <div className="flex flex-col gap-4 mt-4">
         {events.map((event) => (
-          <div key={event.id} className="p-4 text-white bg-blue-600 rounded-lg shadow-lg">
+          <div key={event.id} className="p-4 text-white bg-blue-600 rounded-lg shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
             <h3 className="text-lg font-semibold">{event.title}</h3>
             <p>{event.time}</p>
             <p>{event.description}</p>

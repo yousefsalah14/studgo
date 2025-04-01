@@ -34,7 +34,7 @@ function AuthRoute({ children }) {
 
   if (currentUser) {
     // Redirect based on user role
-    return <Navigate to={currentUser.role === "StudentActivity" ? "/student-activity" : "/student"} replace />;
+    return <Navigate to={currentUser.role === "StudentActivity" ? "/student-activity" : "/"} replace />;
   }
 
   return children;

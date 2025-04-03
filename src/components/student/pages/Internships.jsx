@@ -1,20 +1,13 @@
-import { useState } from 'react';
-import { 
-  Building2, 
-  MapPin, 
-  Clock, 
-  Briefcase, 
-  GraduationCap, 
-  DollarSign, 
-  Search, 
-  Filter,
-  Bookmark,
-  ExternalLink
-} from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Filter } from 'lucide-react';
+import InternshipCard from '../components/InternshipCard';
+import InternshipModal from '../components/InternshipModal';
 
 const Internships = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [showModal, setShowModal] = useState(false);
+  const [currentInternship, setCurrentInternship] = useState(null);
 
   const internships = [
     {
@@ -71,28 +64,67 @@ const Internships = () => {
     { id: 'remote', label: 'Remote' }
   ];
 
+  const filteredInternships = useMemo(() => {
+    return internships.filter(internship => {
+      const searchMatch = searchQuery.toLowerCase() === '' || 
+        internship.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        internship.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        internship.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        internship.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        internship.requirements.some(req => req.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const typeMatch = selectedFilter === 'all' || 
+        (selectedFilter === 'remote' && internship.location.toLowerCase() === 'remote') ||
+        (selectedFilter === 'full-time' && internship.type.toLowerCase() === 'full-time') ||
+        (selectedFilter === 'part-time' && internship.type.toLowerCase() === 'part-time');
+
+      return searchMatch && typeMatch;
+    });
+  }, [internships, searchQuery, selectedFilter]);
+
+  const handleViewDetails = (internship) => {
+    setCurrentInternship(internship);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setCurrentInternship(null);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="min-h-screen bg-gray-900 text-white">
       {/* Hero Section */}
-      <div className="relative h-64 rounded-2xl overflow-hidden mb-8">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-90"></div>
-        <div className="absolute inset-0 flex items-center justify-center">
+      <div className="relative h-[400px] w-full">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: 'url("https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2784&q=80")',
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 to-gray-900/50"></div>
+        </div>
+        <div className="relative h-full flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Find Your Dream Internship</h1>
-            <p className="text-lg text-gray-200">Discover opportunities that match your skills and career goals</p>
+            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+              Find Your Dream Internship
+            </h1>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Discover opportunities that match your skills and career goals
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Search and Filter Section */}
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Search and Filter Section */}
+        <div className="mb-8 flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search internships..."
-              className="w-full pl-10 pr-4 py-3 bg-gray-800 rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full pl-10 pr-4 py-3 bg-gray-800 rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-400"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -100,7 +132,7 @@ const Internships = () => {
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-gray-400" />
             <select
-              className="bg-gray-800 rounded-lg border border-gray-700 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="bg-gray-800 rounded-lg border border-gray-700 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none text-white"
               value={selectedFilter}
               onChange={(e) => setSelectedFilter(e.target.value)}
             >
@@ -110,65 +142,39 @@ const Internships = () => {
             </select>
           </div>
         </div>
+
+        {/* Results Count */}
+        <div className="mb-6 text-gray-400">
+          Found {filteredInternships.length} internships
+        </div>
+
+        {/* Internships Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredInternships.map((internship) => (
+            <InternshipCard
+              key={internship.id}
+              internship={internship}
+              onViewDetails={handleViewDetails}
+            />
+          ))}
+
+          {/* No Results Message */}
+          {filteredInternships.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-400 text-lg">No internships found matching your criteria.</p>
+              <p className="text-gray-500 text-sm mt-2">Try adjusting your search or filters.</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Internships Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {internships.map((internship) => (
-          <div key={internship.id} className="bg-gray-800 rounded-xl p-6 hover:transform hover:scale-105 transition-transform duration-300">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <img src={internship.logo} alt={internship.company} className="w-12 h-12 rounded-lg" />
-                <div>
-                  <h3 className="font-semibold text-lg">{internship.company}</h3>
-                  <p className="text-gray-400">{internship.title}</p>
-                </div>
-              </div>
-              <button className="text-gray-400 hover:text-white">
-                <Bookmark className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center gap-2 text-gray-400">
-                <MapPin className="w-4 h-4" />
-                <span>{internship.location}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <Clock className="w-4 h-4" />
-                <span>{internship.type} • {internship.duration}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <DollarSign className="w-4 h-4" />
-                <span>{internship.stipend}</span>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <h4 className="font-semibold mb-2">Requirements:</h4>
-              <div className="flex flex-wrap gap-2">
-                {internship.requirements.map((req, index) => (
-                  <span key={index} className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
-                    {req}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <p className="text-gray-400 text-sm mb-4 line-clamp-2">{internship.description}</p>
-
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-400">
-                Posted {internship.postedDate}
-              </div>
-              <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">
-                Apply Now
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Modal */}
+      {showModal && (
+        <InternshipModal
+          internship={currentInternship}
+          onClose={closeModal}
+        />
+      )}
     </div>
   );
 };

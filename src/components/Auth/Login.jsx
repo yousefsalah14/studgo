@@ -29,9 +29,9 @@ const Login = () => {
     });
 
     return (
-        <div className="h-screen grid lg:grid-cols-2 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="min-h-screen grid lg:grid-cols-2 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
             {/* Left Side - Form */}
-            <div className="flex flex-col justify-center items-center p-6 sm:p-12">
+            <div className="flex flex-col justify-center items-center p-6 sm:p-12 overflow-y-auto">
                 <div className="w-full max-w-md space-y-8">
                     {/* Logo */}
                     <div className="text-center mb-8">

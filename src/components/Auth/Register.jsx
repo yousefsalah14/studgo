@@ -185,7 +185,7 @@ function Register() {
       <User className="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/> {/* Icon inside input */}
     </div>
     {formik.touched.username && formik.errors.username && (
-      <span className="text-error text-sm text-white">{formik.errors.username}</span>
+      <span className="text-error text-sm text-red-400">{formik.errors.username}</span>
     )}
   </div>
 
@@ -208,7 +208,7 @@ function Register() {
       <Mail className="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/> {/* Icon inside input */}
     </div>
     {formik.touched.email && formik.errors.email && (
-      <span className="text-error text-sm text-white">{formik.errors.email}</span>
+      <span className="text-error text-sm text-red-400">{formik.errors.email}</span>
     )}
   </div>
 

@@ -1,30 +1,21 @@
-import React from 'react';
-
-function AuthImagePattern({ title, subtitle, image }) {
+const AuthImagePattern = ({ title, subtitle, image }) => {
   return (
-    <div className="relative h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-[url('/pattern.png')] bg-repeat opacity-20"></div>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 text-center px-8">
+    <div className="hidden lg:flex items-center justify-center bg-gray-900 h-full">
+      <div className="max-w-md text-center flex flex-col justify-center items-center h-full py-8">
         {/* Image Container */}
-        <div className="mb-8 flex justify-center">
+        <div className="flex justify-center mb-4">
           <img
             src={image}
-            alt="Authentication"
-            className="w-full max-w-[400px] h-auto object-contain"
+            alt="Authentication Illustration"
+            className="w-90 h-90 object-contain"
           />
         </div>
-
-        {/* Text Content */}
-        <h2 className="text-4xl font-bold text-white mb-4">{title}</h2>
-        <p className="text-gray-300 text-lg">{subtitle}</p>
+        {/* Title and Subtitle */}
+        <h2 className="text-2xl font-bold mb-2 text-white">{title}</h2>
+        <p className="text-gray-300 text-sm">{subtitle}</p>
       </div>
     </div>
   );
-}
+};
 
 export default AuthImagePattern;

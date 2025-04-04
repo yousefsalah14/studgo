@@ -38,22 +38,21 @@ function Register() {
 
   const validationSchema = Yup.object().shape({
     username: Yup.string()
-    .matches(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
-    .min(3, "Username must be at least 3 characters")
-    .max(30, "Username cannot exceed 30 characters")
-    .required("Username is required"),
+      .matches(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
+      .min(3, "Username must be at least 3 characters")
+      .max(30, "Username cannot exceed 30 characters")
+      .required("Username is required"),
 
-  email: Yup.string()
-    .email("Invalid email format")
-    .required("Email is required"),
+    email: Yup.string()
+      .email("Invalid email format")
+      .required("Email is required"),
 
-  password: Yup.string()
-    .min(8, "Password must be at least 8 characters")
-    .matches(/[a-z]/, "Password must contain at least one lowercase letter")
-    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .matches(/[0-9]/, "Password must contain at least one number")
-    .matches(/[@$!%*?&]/, "Password must contain at least one special character (@$!%*?&)")
-    .required("Password is required"),
+    password: Yup.string()
+      .min(6, "Password must be at least 6 characters")
+      .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .matches(/[0-9]/, "Password must contain at least one number")
+      .matches(/[@$!%*?&]/, "Password must contain at least one special character (@$!%*?&)")
+      .required("Password is required"),
   });
 
   const formik = useFormik({
@@ -68,9 +67,9 @@ function Register() {
   });
 
   return (
-    <div className="h-screen grid lg:grid-cols-2 bg-gray-900">
+    <div className="min-h-screen grid lg:grid-cols-2 bg-gray-900 overflow-hidden">
       {/* Left Side - Form */}
-      <div className="flex flex-col justify-center items-center p-6 sm:p-12">
+      <div className="flex flex-col justify-center items-center p-6 sm:p-12 overflow-y-auto">
         <div className="w-full max-w-md space-y-8">
           {/* Logo */}
           <div className="text-center mb-8">
@@ -214,40 +213,54 @@ function Register() {
   </div>
 
 
-            {/* Password Field */}
+            {/* Password Field with Requirements */}
             <div className="form-control">
       <label className="label text-gray-100">Password</label>
       <div className="relative">
-        {/* Lock icon */}
         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
           <Lock className="w-5 h-5 text-gray-400" />
         </div>
-        {/* Password input */}
         <input
           type={showPassword ? "text" : "password"}
           name="password"
-          className={`input input-bordered w-full bg-gray-800 text-gray-100 placeholder-gray-400 pl-10 p-2  rounded-md ${
+          className={`input input-bordered w-full bg-gray-800 text-gray-100 placeholder-gray-400 pl-10 p-2 rounded-md ${
             formik.touched.password && formik.errors.password ? "input-error" : ""
           }`}
           placeholder="Enter your password"
           {...formik.getFieldProps("password")}
         />
-        {/* Eye icon to toggle password visibility */}
         <button
           type="button"
           className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
-          onClick={()=>{setShowPassword(!showPassword)}}
+          onClick={() => setShowPassword(!showPassword)}
         >
           {showPassword ? (
-            <EyeOff className="w-5 h-5 text-gray-400" /> // Eye-off icon when password is visible
+            <EyeOff className="w-5 h-5 text-gray-400" />
           ) : (
-            <Eye className="w-5 h-5 text-gray-400" /> // Eye icon when password is hidden
+            <Eye className="w-5 h-5 text-gray-400" />
           )}
         </button>
       </div>
-      {/* Error message */}
+      {/* Password Requirements */}
+      <div className="mt-2 text-sm">
+        <p className="mb-1 text-gray-400">Password must contain:</p>
+        <ul className="list-disc list-inside space-y-1">
+          <li className={formik.values.password.length >= 6 ? "text-green-400" : "text-red-400"}>
+            At least 6 characters
+          </li>
+          <li className={/[A-Z]/.test(formik.values.password) ? "text-green-400" : "text-red-400"}>
+            One uppercase letter
+          </li>
+          <li className={/[0-9]/.test(formik.values.password) ? "text-green-400" : "text-red-400"}>
+            One number
+          </li>
+          <li className={/[@$!%*?&]/.test(formik.values.password) ? "text-green-400" : "text-red-400"}>
+            One special character (@$!%*?&)
+          </li>
+        </ul>
+      </div>
       {formik.touched.password && formik.errors.password && (
-        <span className="text-error text-sm text-white">{formik.errors.password}</span>
+        <span className="text-red-400 text-sm mt-1">{formik.errors.password}</span>
       )}
     </div>
 
@@ -275,11 +288,13 @@ function Register() {
         </div>
       </div>
              {/* Right Side - Image/Pattern */}
-             <AuthImagePattern
-              title={"Welcome back!"}
-              subtitle={"Sign in to continue your conversations and catch up with your messages."}
-              image={RegImg}
-          />
+             <div className="hidden lg:block overflow-hidden">
+               <AuthImagePattern
+                title={"Welcome back!"}
+                subtitle={"Sign in to continue your conversations and catch up with your messages."}
+                image={RegImg}
+            />
+          </div>
     </div>
   );
 }

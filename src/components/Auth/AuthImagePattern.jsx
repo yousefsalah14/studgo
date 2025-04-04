@@ -1,21 +1,30 @@
-const AuthImagePattern = ({ title, subtitle ,image}) => {
-    return (
-      <div className="hidden lg:flex items-center justify-center bg-gray-900 p-12">
-        <div className="max-w-md text-center">
-          {/* Image Container */}
-          <div className="flex justify-center mb-8">
-            <img
-              src={image} // Use the imported image
-              alt="Authentication Illustration"
-              className="w-96 h-96 object-contain " // Set perfect width and height
-            />
-          </div>
-          {/* Title and Subtitle */}
-          <h2 className="text-2xl font-bold mb-4 text-white">{title}</h2>
-          <p className="text-gray-300">{subtitle}</p>
-        </div>
+import React from 'react';
+
+function AuthImagePattern({ title, subtitle, image }) {
+  return (
+    <div className="relative h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-[url('/pattern.png')] bg-repeat opacity-20"></div>
       </div>
-    );
-  };
-  
-  export default AuthImagePattern;
+
+      {/* Content */}
+      <div className="relative z-10 text-center px-8">
+        {/* Image Container */}
+        <div className="mb-8 flex justify-center">
+          <img
+            src={image}
+            alt="Authentication"
+            className="w-full max-w-[400px] h-auto object-contain"
+          />
+        </div>
+
+        {/* Text Content */}
+        <h2 className="text-4xl font-bold text-white mb-4">{title}</h2>
+        <p className="text-gray-300 text-lg">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+export default AuthImagePattern;

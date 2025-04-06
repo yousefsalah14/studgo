@@ -18,6 +18,7 @@ import SaWorkshops from './components/SA/pages/SaWorkshops.jsx';
 import SaTalks from './components/SA/pages/SaTalks.jsx';
 import SaStudentActivities from './components/SA/pages/SaStudentActivities.jsx';
 import SaCalendar from './components/SA/pages/SaCalendar.jsx';
+import SaProfile from './components/SA/pages/SaProfile.jsx'; // Add this import
 import { QueryClient, QueryClientProvider } from 'react-query';
 import {Toaster} from 'react-hot-toast'
 import ForgotPassword from './components/Auth/ForgetPassword.jsx';
@@ -76,6 +77,7 @@ function App() {
       { path: 'talks', element: <ProtectedRoute requiredRole="StudentActivity"><SaTalks /></ProtectedRoute> },
       { path: 'calendar', element: <ProtectedRoute requiredRole="StudentActivity"><SaCalendar /></ProtectedRoute> },
       { path: 'student-activities', element: <ProtectedRoute requiredRole="StudentActivity"><SaStudentActivities /></ProtectedRoute> },
+      { path: 'profile', element: <ProtectedRoute requiredRole="StudentActivity"><SaProfile /></ProtectedRoute> },
     ],
   };
 

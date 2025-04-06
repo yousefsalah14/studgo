@@ -48,7 +48,8 @@ const NavBar = () => {
     { path: '/student-activities', label: 'Organizations', icon: Users },
     { path: '/events', label: 'Events', icon: CalendarIcon },
     { path: '/workshops', label: 'Workshops', icon: BookOpen },
-    { path: '/interns', label: 'Internships', icon: Briefcase }
+    { path: '/interns', label: 'Internships', icon: Briefcase },
+    { path: '/sa-profile', label: 'SA Profile', icon: User }
   ];
 
   return (

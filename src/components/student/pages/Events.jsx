@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery } from 'react-query';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { axiosInstance } from '../../../lib/axios';
 
 // Import components
 import HeroSection from '../components/Events/HeroSection';
@@ -12,25 +12,194 @@ import EventCard from '../components/Events/EventCard';
 import EventDetailsModal from '../components/Events/EventDetailsModal';
 
 function Events() {
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [currentEvent, setCurrentEvent] = useState(null);
-  const [appliedEvents, setAppliedEvents] = useState([]);
+  const [appliedEventIds, setAppliedEventIds] = useState([]);
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageSize = 10;
 
-  const { data: eventList = [], isLoading, error } = useQuery(
-    'events',
+  // Fetch states data
+  const { data: statesData, isLoading: statesLoading } = useQuery(
+    'states',
     async () => {
-      const { data } = await axios.get("https://studgov1.runasp.net/api/Events/all");
+      const { data } = await axiosInstance().get("/State/GetStates");
       return data.data;
     }
   );
 
-  const filteredEvents = eventList.filter((event) => {
-    const matchesCategory = selectedCategory === 'All' || event.category === selectedCategory;
-    const matchesSearch = event.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Fetch events data with filtering
+  const { data: eventsData = { data: [], count: 0 }, isLoading: eventsLoading, error } = useQuery(
+    ['events', searchQuery, selectedCategory, pageIndex],
+    async () => {
+      const { data } = await axiosInstance().get("/activity/filter", {
+        params: {
+          Name: searchQuery,
+          ActivityType: "Event",
+          PageIndex: pageIndex,
+          PageSize: pageSize,
+          // Only include category filter if not "All"
+          ...(selectedCategory !== 'All' && { ActivityCategory: selectedCategory })
+        }
+      });
+      return data;
+    },
+    {
+      keepPreviousData: true,
+    }
+  );
+
+  // Check applied status for each event
+  const checkAppliedStatus = async (eventId) => {
+    try {
+      console.log(`Checking applied status for event ${eventId}...`);
+      const response = await axiosInstance().get("/activity/student/applied", {
+        params: { activityId: eventId }
+      });
+      
+      console.log(`Response for event ${eventId}:`, response.data);
+      
+      // If the API call was successful (status 200), it means the user has applied
+      // The API returns a 200 status code when the user has applied to the event
+      return true;
+    } catch (error) {
+      // If the API returns a 404, it means the user has not applied
+      if (error.response && error.response.status === 404) {
+        console.log(`User has not applied to event ${eventId}`);
+        return false;
+      }
+      
+      console.error(`Error checking applied status for event ${eventId}:`, error);
+      return false;
+    }
+  };
+
+  // Update applied status for all events when events data changes
+  useEffect(() => {
+    const updateAppliedStatus = async () => {
+      if (!eventsData.data || eventsData.data.length === 0) return;
+      
+      // Only check if user is logged in
+      if (!localStorage.getItem('accessToken')) {
+        console.log('User not logged in, skipping applied status check');
+        setAppliedEventIds([]);
+        return;
+      }
+      
+      console.log('Checking applied status for all events...');
+      const appliedIds = [];
+      
+      // Check each event's applied status
+      for (const event of eventsData.data) {
+        const isApplied = await checkAppliedStatus(event.id);
+        if (isApplied) {
+          console.log(`User has applied to event ${event.id}`);
+          appliedIds.push(event.id);
+        }
+      }
+      
+      console.log('Applied event IDs:', appliedIds);
+      setAppliedEventIds(appliedIds);
+    };
+    
+    updateAppliedStatus();
+  }, [eventsData.data]);
+
+  const isLoading = statesLoading || eventsLoading;
+
+  const filteredEvents = eventsData.data;
+
+  // Calculate total pages using the count from API
+  const totalPages = Math.ceil(eventsData.count / pageSize);
+
+  // Handle page navigation
+  const handlePrevPage = () => {
+    if (pageIndex > 0) {
+      setPageIndex(pageIndex - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pageIndex < totalPages - 1) {
+      setPageIndex(pageIndex + 1);
+    }
+  };
+
+  // Handle search and filter changes
+  const handleSearchInputChange = (value) => {
+    setSearchInput(value);
+  };
+
+  const handleSearchSubmit = () => {
+    setSearchQuery(searchInput);
+    setPageIndex(0);
+  };
+
+  const handleCategoryChange = (value) => {
+    setSelectedCategory(value);
+    // Reset to first page when category changes
+    setPageIndex(0);
+  };
+
+  const handleApply = async (id) => {
+    try {
+      // Check if user is logged in
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        toast.error('You need to be logged in to apply for events.');
+        return;
+      }
+      
+      // Call the apply endpoint with the event ID
+      await axiosInstance().post(`/activity/${id}/apply`);
+      
+      // Add the event ID to appliedEventIds
+      setAppliedEventIds([...appliedEventIds, id]);
+      
+      toast.success('Successfully applied to the event!');
+    } catch (error) {
+      console.error('Error applying to event:', error);
+      
+      // Handle 400 Bad Request errors
+      if (error.response && error.response.status === 400) {
+        // Check if there are validation errors in the response
+        if (error.response.data && error.response.data.errors) {
+          // Display each validation error message
+          const errorMessages = error.response.data.errors;
+          if (Array.isArray(errorMessages)) {
+            errorMessages.forEach(message => {
+              toast.error(message);
+            });
+          } else if (typeof errorMessages === 'object') {
+            // If errors is an object with field names as keys
+            Object.values(errorMessages).forEach(messages => {
+              if (Array.isArray(messages)) {
+                messages.forEach(message => toast.error(message));
+              } else {
+                toast.error(messages);
+              }
+            });
+          } else {
+            // If errors is a single string
+            toast.error(errorMessages);
+          }
+        } else if (error.response.data && error.response.data.message) {
+          // If there's a single error message
+          toast.error(error.response.data.message);
+        } else {
+          toast.error('Failed to apply to the event. Please check your input and try again.');
+        }
+      } else if (error.response && error.response.status === 401) {
+        // Handle unauthorized error
+        toast.error('You need to be logged in to apply for events.');
+      } else {
+        // Generic error for other status codes
+        toast.error('Failed to apply to the event. Please try again later.');
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -51,22 +220,6 @@ function Events() {
     );
   }
 
-  const handleApply = (id) => {
-    const eventToApply = eventList.find((event) => event.id === id);
-    const conflict = appliedEvents.some(
-      (appliedEvent) =>
-        new Date(eventToApply.startDate) <= new Date(appliedEvent.endDate) &&
-        new Date(eventToApply.endDate) >= new Date(appliedEvent.startDate)
-    );
-
-    if (conflict) {
-      toast.error('There is a conflict with an already applied event.');
-    } else {
-      setAppliedEvents([...appliedEvents, eventToApply]);
-      toast.success('Successfully applied to the event!');
-    }
-  };
-
   const openEventDetails = (event) => {
     setCurrentEvent(event);
     setShowModal(true);
@@ -82,13 +235,18 @@ function Events() {
       <HeroSection />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <QuickStats eventList={eventList} appliedEvents={appliedEvents} />
+        <QuickStats 
+          totalEvents={statesData?.totalEvents || 0} 
+          appliedEvents={statesData?.appliedEvents || 0}
+          upcomingEvents={statesData?.upcomingEvents || 0}
+        />
         
         <SearchAndFilter 
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+          searchQuery={searchInput}
+          setSearchQuery={handleSearchInputChange}
           selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
+          setSelectedCategory={handleCategoryChange}
+          onSearch={handleSearchSubmit}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -98,9 +256,47 @@ function Events() {
               event={event}
               onViewDetails={openEventDetails}
               onApply={handleApply}
-              isApplied={appliedEvents.some(appliedEvent => appliedEvent.id === event.id)}
+              isApplied={appliedEventIds.includes(event.id)}
             />
           ))}
+        </div>
+
+        {/* Pagination Controls with Count Information */}
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <div className="text-gray-300 text-sm">
+            Showing {filteredEvents.length} of {eventsData.count} events
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handlePrevPage}
+              disabled={pageIndex === 0}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                pageIndex === 0
+                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-500'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+            
+            <span className="text-gray-300">
+              Page {pageIndex + 1} of {totalPages}
+            </span>
+            
+            <button
+              onClick={handleNextPage}
+              disabled={pageIndex === totalPages - 1}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                pageIndex === totalPages - 1
+                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-500'
+              }`}
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {showModal && (
@@ -108,7 +304,7 @@ function Events() {
             event={currentEvent}
             onClose={closeModal}
             onApply={handleApply}
-            isApplied={appliedEvents.some(appliedEvent => appliedEvent.id === currentEvent.id)}
+            isApplied={appliedEventIds.includes(currentEvent.id)}
           />
         )}
       </div>

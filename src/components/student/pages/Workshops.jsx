@@ -1,297 +1,174 @@
-import React from 'react';
-import { 
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  BookOpen,
-  Presentation,
-  Target,
-  Award,
-  Star,
-  ChevronRight,
-  Laptop,
-  MessageSquare,
-  User,
-  GraduationCap
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { axiosInstance } from '../../../lib/axios';
+import HeroSection from '../components/Workshops/HeroSection';
+import SearchAndFilter from '../components/Workshops/SearchAndFilter';
+import WorkshopCard from '../components/Workshops/WorkshopCard';
 
 const Workshops = () => {
-  // Static data for workshops
-  const workshops = [
-    {
-      id: 1,
-      title: "Web Development Bootcamp",
-      instructor: "Ahmed Hassan",
-      instructorTitle: "Senior Developer at Tech Corp",
-      date: "2024-03-15",
-      time: "10:00 AM - 2:00 PM",
-      location: "Tech Hub, Cairo",
-      capacity: 30,
-      enrolled: 25,
-      category: "Technical",
-      level: "Intermediate",
-      description: "A comprehensive workshop covering modern web development practices, including React, Node.js, and database design.",
-      topics: ["React Fundamentals", "Node.js Basics", "Database Design", "API Development"],
-      requirements: ["Basic JavaScript knowledge", "Laptop with Node.js installed"],
-      image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97"
-    },
-    {
-      id: 2,
-      title: "UI/UX Design Workshop",
-      instructor: "Sarah Ahmed",
-      instructorTitle: "UX Lead at Design Studio",
-      date: "2024-03-20",
-      time: "1:00 PM - 5:00 PM",
-      location: "Design Center, Alexandria",
-      capacity: 25,
-      enrolled: 20,
-      category: "Design",
-      level: "Beginner",
-      description: "Learn the fundamentals of user interface and user experience design, including wireframing and prototyping.",
-      topics: ["Design Principles", "User Research", "Wireframing", "Prototyping"],
-      requirements: ["No prior experience needed", "Figma account"],
-      image: "https://images.unsplash.com/photo-1541462608143-67571c6738dd"
-    }
-  ];
+  const navigate = useNavigate();
+  const [workshops, setWorkshops] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [appliedWorkshops, setAppliedWorkshops] = useState([]);
 
-  // Static data for talks
-  const talks = [
-    {
-      id: 1,
-      title: "Future of AI in Education",
-      speaker: "Dr. Mohamed Kamal",
-      speakerTitle: "AI Research Lead at Tech University",
-      date: "2024-03-18",
-      time: "11:00 AM - 12:30 PM",
-      location: "Main Auditorium, Cairo University",
-      capacity: 200,
-      registered: 150,
-      category: "Technology",
-      description: "An insightful talk about how artificial intelligence is transforming education and what the future holds.",
-      topics: ["AI in Education", "Machine Learning Applications", "Future Trends"],
-      image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e"
-    },
-    {
-      id: 2,
-      title: "Entrepreneurship Journey",
-      speaker: "Laila Ibrahim",
-      speakerTitle: "Founder & CEO of StartTech",
-      date: "2024-03-25",
-      time: "2:00 PM - 3:30 PM",
-      location: "Innovation Hub, Smart Village",
-      capacity: 150,
-      registered: 120,
-      category: "Business",
-      description: "Learn from a successful entrepreneur about the challenges and opportunities in starting your own tech company.",
-      topics: ["Starting a Business", "Fundraising", "Team Building", "Growth Strategies"],
-      image: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2"
+  // Fetch workshops with filtering and pagination
+  const fetchWorkshops = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        Name: searchQuery,
+        PageIndex: currentPage - 1,
+        PageSize: 10,
+        ActivityType: 'Workshop'
+      };
+
+      // Only add ActivityCategory if not 'All'
+      if (selectedCategory !== 'All') {
+        params.ActivityCategory = selectedCategory;
+      }
+
+      const response = await axiosInstance()({
+        method: 'get',
+        url: '/activity/filter',
+        params
+      });
+
+      // Check if response exists and has data property
+      if (!response || !response.data) {
+        console.error('Invalid response format:', response);
+        setError('Invalid response format from server');
+        return;
+      }
+
+      // Handle the response data based on the exact API structure
+      const workshopsData = response.data.data || [];
+      const totalElements = response.data.count || 0;
+      const totalPagesCount = Math.ceil(totalElements / 10) || 1;
+
+      setWorkshops(workshopsData);
+      setTotalPages(totalPagesCount);
+    } catch (err) {
+      console.error('Error fetching workshops:', err);
+      setError(err.message || 'Failed to fetch workshops');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Handle search button click
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to first page when searching
+    fetchWorkshops(); // Only fetch when search button is clicked
+  };
+
+  // Handle page change
+  const handlePageChange = async (newPage) => {
+    setCurrentPage(newPage);
+    fetchWorkshops();
+  };
+
+  // Initial fetch on component mount
+  useEffect(() => {
+    fetchWorkshops();
+  }, []);
+
+  const handleApply = async (workshopId) => {
+    try {
+      await axiosInstance()({
+        method: 'post',
+        url: `/activity/${workshopId}/apply`
+      });
+      setAppliedWorkshops(prev => [...prev, workshopId]);
+      alert('Successfully applied for the workshop!');
+    } catch (error) {
+      if (error.response?.status === 409) {
+        alert('You have already applied to this workshop.');
+        return;
+      }
+      console.error('Error applying for workshop:', error);
+      alert('Failed to apply for workshop. Please try again.');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Hero Section */}
-      <div className="relative h-[400px] w-full">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: 'url("https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80")',
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 to-gray-900/50"></div>
-        </div>
-        <div className="relative h-full flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-              Workshops & Talks
-            </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Enhance your skills and knowledge through our interactive workshops and inspiring talks
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-gray-900">
+      <HeroSection />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Workshops Section */}
-        <div className="mb-16">
-          <div className="flex items-center gap-2 mb-8">
-            <Laptop className="w-6 h-6 text-blue-400" />
-            <h2 className="text-3xl font-bold text-white">Technical Workshops</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {workshops.map((workshop) => (
-              <div 
-                key={workshop.id}
-                className="bg-gray-800/50 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-gray-800/70 transition-all duration-300"
-              >
-                <div className="h-48 relative">
-                  <img 
-                    src={workshop.image} 
-                    alt={workshop.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
-                      {workshop.category}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-white mb-2">{workshop.title}</h3>
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <User className="w-4 h-4" />
-                        <span className="text-sm">{workshop.instructor}</span>
-                      </div>
-                      <div className="text-xs text-gray-500">{workshop.instructorTitle}</div>
-                    </div>
-                    <span className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm">
-                      {workshop.level}
-                    </span>
-                  </div>
-
-                  <p className="text-gray-400 mb-4 line-clamp-2">{workshop.description}</p>
-
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Calendar className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm">{workshop.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Clock className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm">{workshop.time}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <MapPin className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm">{workshop.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Users className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm">{workshop.enrolled}/{workshop.capacity} enrolled</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-300 mb-2">Topics Covered:</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {workshop.topics.map((topic, index) => (
-                          <span 
-                            key={index}
-                            className="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-full"
-                          >
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex justify-end">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center gap-2">
-                      Register Now
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-white">Workshops</h2>
         </div>
 
-        {/* Talks Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-8">
-            <MessageSquare className="w-6 h-6 text-purple-400" />
-            <h2 className="text-3xl font-bold text-white">Featured Talks</h2>
+        <SearchAndFilter
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          onSearch={handleSearch}
+        />
+
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-400">Loading workshops...</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {talks.map((talk) => (
-              <div 
-                key={talk.id}
-                className="bg-gray-800/50 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-gray-800/70 transition-all duration-300"
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-500">{error}</p>
+            <button 
+              onClick={fetchWorkshops}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : workshops.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No workshops found.</p>
+          </div>
+        ) : (
+          <>
+            {/* List View */}
+            <div className="space-y-6">
+              {workshops.map((workshop) => (
+                <WorkshopCard
+                  key={workshop.id}
+                  workshop={workshop}
+                  onApply={handleApply}
+                  isApplied={appliedWorkshops.includes(workshop.id)}
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <div className="mt-8 flex justify-center items-center gap-4">
+              <button
+                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div className="h-48 relative">
-                  <img 
-                    src={talk.image} 
-                    alt={talk.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm">
-                      {talk.category}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-white mb-2">{talk.title}</h3>
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <GraduationCap className="w-4 h-4" />
-                        <span className="text-sm">{talk.speaker}</span>
-                      </div>
-                      <div className="text-xs text-gray-500">{talk.speakerTitle}</div>
-                    </div>
-                  </div>
-
-                  <p className="text-gray-400 mb-4 line-clamp-2">{talk.description}</p>
-
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Calendar className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm">{talk.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Clock className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm">{talk.time}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <MapPin className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm">{talk.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Users className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm">{talk.registered}/{talk.capacity} registered</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-300 mb-2">Topics:</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {talk.topics.map((topic, index) => (
-                          <span 
-                            key={index}
-                            className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full"
-                          >
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex justify-end">
-                    <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors flex items-center gap-2">
-                      Reserve Seat
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="text-gray-400">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

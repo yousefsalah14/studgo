@@ -39,7 +39,7 @@ const ResetCode = () => {
             setApiError(null);
 
             try {
-                await axios.post("https://studgov2.runasp.net/api/auth/reset-password", {
+                await axios.post("https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api/auth/reset-password", {
                     email,
                     resetCode: values.resetCode,
                     newPassword: values.newPassword,

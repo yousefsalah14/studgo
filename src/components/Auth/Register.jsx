@@ -21,8 +21,8 @@ function Register() {
       try {
         setLoading(true);
         const endpoint = isStudentActivityRegister
-        ? "https://studgov2.runasp.net/api/auth/sa-register"
-        : "https://studgov2.runasp.net/api/auth/student-Register";
+        ? "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api/auth/sa-register"
+        : "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api/auth/student-Register";
         const { data } = await axios.post(endpoint, values);
         navigate("/login");
       } catch (error) {

@@ -28,6 +28,7 @@ import Events from './components/student/pages/Events.jsx';
 import Workshops from './components/student/pages/Workshops.jsx';
 import Calendar from './components/student/pages/Calendar.jsx';
 import Internships from './components/student/pages/Internships.jsx';
+import WorkshopDetails from './components/student/pages/WorkshopDetails';
 
 // 🔥 New AuthRoute Component
 function AuthRoute({ children }) {
@@ -54,6 +55,7 @@ function App() {
       { path: 'workshops', element: <ProtectedRoute requiredRole="Student"><Workshops /></ProtectedRoute> },
       { path: 'interns', element: <ProtectedRoute requiredRole="Student"><Internships /></ProtectedRoute> },
       { path: 'studentactivity/:id', element: <ProtectedRoute requiredRole="Student"><StudentActivityDetails /></ProtectedRoute> },
+      { path: 'workshops/:id', element: <WorkshopDetails /> },
     ],
   };
 

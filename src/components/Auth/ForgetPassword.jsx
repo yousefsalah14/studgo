@@ -29,7 +29,7 @@ const ForgetPassword = () => {
 
             try {
                 const response = await axios.post(
-                    "https://studgov2.runasp.net/api/auth/forgot-password",
+                    "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api/auth/forgot-password",
                     values
                 );
                 navigate("/reset-code", { state: { email: values.email } });

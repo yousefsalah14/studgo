@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Calendar as CalendarIcon,
   Clock,
@@ -11,312 +12,871 @@ import {
   List,
   Grid,
   Calendar as CalendarView,
-  CheckCircle2,
-  Clock3,
-  CalendarCheck,
-  CalendarX,
-  ListChecks
+  Timer,
+  X,
+  Info,
+  Tag,
+  Calendar as CalendarCheck,
+  User,
+  Building
 } from "lucide-react";
-import { toast } from "react-hot-toast";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, addMonths, subMonths, addWeeks, subWeeks, isSameMonth, isSameDay } from 'date-fns';
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  startOfWeek, 
+  endOfWeek, 
+  addMonths, 
+  subMonths, 
+  isSameMonth, 
+  isSameDay,
+  addWeeks,
+  subWeeks,
+  addDays,
+  subDays,
+  getYear,
+  getMonth,
+  getDate,
+  setYear,
+  setMonth,
+  setDate,
+  parseISO
+} from 'date-fns';
+import { axiosInstance } from '../../../lib/axios';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
-export default function Calendar() {
-  const [viewMode, setViewMode] = useState("month"); // month, week, day
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activeTab, setActiveTab] = useState("all"); // all, events, agenda
+// Fix for Leaflet marker icons in React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
-  // Mock data for events
-  const events = [
-    {
-      id: 1,
-      title: "Web Development Workshop",
-      date: "2024-03-15",
-      time: "10:00 AM",
-      location: "Room 101",
-      attendees: 25,
-      type: "workshop",
-      status: "upcoming"
-    },
-    {
-      id: 2,
-      title: "Leadership Talk",
-      date: "2024-03-20",
-      time: "2:00 PM",
-      location: "Auditorium",
-      attendees: 50,
-      type: "talk",
-      status: "upcoming"
-    },
-    {
-      id: 3,
-      title: "Data Science Workshop",
-      date: "2024-03-10",
-      time: "11:00 AM",
-      location: "Lab 3",
-      attendees: 30,
-      type: "workshop",
-      status: "completed"
-    }
-  ];
+// Custom animation styles
+const shakeAnimation = `
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+  .animate-shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  }
+`;
 
-  // Mock data for agenda items
-  const agendaItems = [
-    {
-      id: 1,
-      title: "Complete Workshop Assignment",
-      date: "2024-03-17",
-      time: "5:00 PM",
-      relatedEvent: "Web Development Workshop",
-      status: "pending"
-    },
-    {
-      id: 2,
-      title: "Submit Event Feedback",
-      date: "2024-03-12",
-      time: "3:00 PM",
-      relatedEvent: "Data Science Workshop",
-      status: "overdue"
-    }
-  ];
+// Event image helper
+const getEventImage = (activity) => {
+  if (activity.activityType === "Workshop") {
+    return "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
+  } else if (activity.activityType === "Event" && activity.activityCategory === "Technical") {
+    return "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
+  } else if (activity.activityType === "Event" && activity.activityCategory === "NonTechnical") {
+    return "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
+  } else {
+    return "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
+  }
+};
 
-  const handleViewModeChange = (mode) => {
-    setViewMode(mode);
-    toast.success(`Switched to ${mode} view`);
-  };
+// Filter options
+const generateFilterOptions = () => {
+  const years = Array.from({ length: 10 }, (_, i) => getYear(new Date()) - 5 + i);
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: i,
+    label: format(new Date(2024, i, 1), 'MMMM')
+  }));
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  
+  return { years, months, days };
+};
 
-  const handleDateNavigation = (direction) => {
-    const newDate = new Date(selectedDate);
-    if (direction === "prev") {
-      newDate.setDate(newDate.getDate() - 1);
+// Calendar Header Component
+const CalendarHeader = ({ currentDate, viewMode, onNavigate, onFilterToggle, showFilters }) => {
+  const renderCalendarHeader = () => {
+    if (viewMode === "month") {
+      return format(currentDate, 'MMMM yyyy');
+    } else if (viewMode === "week") {
+      const weekStart = startOfWeek(currentDate);
+      const weekEnd = endOfWeek(currentDate);
+      return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
     } else {
-      newDate.setDate(newDate.getDate() + 1);
+      return format(currentDate, 'EEEE, MMMM d, yyyy');
     }
-    setSelectedDate(newDate);
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent">
-              Calendar
-            </h1>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleDateNavigation("prev")}
-                className="p-2 rounded-lg hover:bg-gray-800"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="text-lg">
-                {selectedDate.toLocaleDateString("en-US", {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </span>
-              <button
-                onClick={() => handleDateNavigation("next")}
-                className="p-2 rounded-lg hover:bg-gray-800"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Add Event
+    <div className="max-w-7xl mx-auto mb-4 sm:mb-8 px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent tracking-tight">
+            Calendar
+          </h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate("prev")}
+              className="p-2 rounded-lg hover:bg-gray-800 transition-all duration-200"
+            >
+              <ChevronLeft className="w-5 h-5" />
             </button>
-            <button className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2">
+            <span className="text-lg sm:text-xl font-medium tracking-wide">
+              {renderCalendarHeader()}
+            </span>
+            <button
+              onClick={() => onNavigate("next")}
+              className="p-2 rounded-lg hover:bg-gray-800 transition-all duration-200"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <button 
+              onClick={onFilterToggle}
+              className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 font-medium"
+            >
               <Filter className="w-4 h-4" />
               Filter
             </button>
           </div>
         </div>
       </div>
+    </div>
+  );
+};
 
-      {/* View Mode Toggle */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="flex items-center gap-2 bg-gray-800/50 p-1 rounded-lg w-fit">
-          <button
-            onClick={() => handleViewModeChange("month")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-              viewMode === "month"
-                ? "bg-blue-500 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
+// View Mode Toggle Component
+const ViewModeToggle = ({ viewMode, onViewModeChange }) => {
+  return (
+    <div className="max-w-7xl mx-auto mb-4 sm:mb-6 px-4 sm:px-6">
+      <div className="flex items-center gap-2 bg-gray-800/50 p-1 rounded-lg w-fit">
+        <button
+          onClick={() => onViewModeChange("month")}
+          className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
+            viewMode === "month"
+              ? "bg-blue-500 text-white"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <CalendarView className="w-4 h-4" />
+          <span className="hidden sm:inline">Month</span>
+        </button>
+        <button
+          onClick={() => onViewModeChange("week")}
+          className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
+            viewMode === "week"
+              ? "bg-blue-500 text-white"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Grid className="w-4 h-4" />
+          <span className="hidden sm:inline">Week</span>
+        </button>
+        <button
+          onClick={() => onViewModeChange("day")}
+          className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
+            viewMode === "day"
+              ? "bg-blue-500 text-white"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <List className="w-4 h-4" />
+          <span className="hidden sm:inline">Day</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Filter Dropdown Component
+const FilterDropdown = ({ showFilters, currentDate, onFilterChange }) => {
+  const { years, months, days } = generateFilterOptions();
+  
+  if (!showFilters) return null;
+  
+  return (
+    <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-xl p-4 z-10">
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Year</label>
+          <select 
+            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            value={getYear(currentDate)}
+            onChange={(e) => onFilterChange('year', e.target.value)}
           >
-            <CalendarView className="w-4 h-4" />
-            Month
-          </button>
-          <button
-            onClick={() => handleViewModeChange("week")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-              viewMode === "week"
-                ? "bg-blue-500 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
+            {years.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Month</label>
+          <select 
+            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            value={getMonth(currentDate)}
+            onChange={(e) => onFilterChange('month', e.target.value)}
           >
-            <Grid className="w-4 h-4" />
-            Week
-          </button>
-          <button
-            onClick={() => handleViewModeChange("day")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-              viewMode === "day"
-                ? "bg-blue-500 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
+            {months.map(month => (
+              <option key={month.value} value={month.value}>{month.label}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Day</label>
+          <select 
+            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            value={getDate(currentDate)}
+            onChange={(e) => onFilterChange('day', e.target.value)}
           >
-            <List className="w-4 h-4" />
-            Day
-          </button>
+            {days.map(day => (
+              <option key={day} value={day}>{day}</option>
+            ))}
+          </select>
         </div>
       </div>
+    </div>
+  );
+};
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calendar View */}
-          <div className="lg:col-span-2">
-            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-2 mb-4">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-sm text-gray-400 font-medium py-2"
-                  >
-                    {day}
-                  </div>
-                ))}
+// Event Details Modal Component
+const EventDetailsModal = ({ event, onClose }) => {
+  if (!event) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="relative">
+          <img 
+            src={getEventImage(event)} 
+            alt={event.title}
+            className="w-full h-48 object-cover rounded-t-2xl"
+          />
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 bg-gray-900/70 rounded-full p-2 hover:bg-gray-900 transition-all duration-200"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
+        
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-white mb-2">{event.title}</h2>
+          
+          <div className="flex items-center gap-2 text-blue-400 mb-4">
+            <Tag className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {event.activityType} {event.activityCategory && `- ${event.activityCategory}`}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-gray-300 mb-2">
+                <CalendarCheck className="w-4 h-4" />
+                <span className="text-sm font-medium">Date & Time</span>
               </div>
-              <div className="grid grid-cols-7 gap-2">
-                {Array.from({ length: 35 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="aspect-square bg-gray-700/30 rounded-lg p-2 hover:bg-gray-700/50 transition-colors cursor-pointer"
-                  >
-                    <span className="text-sm text-gray-400">{index + 1}</span>
-                  </div>
-                ))}
+              <div className="text-white">
+                <div>{format(parseISO(event.startDate), 'EEEE, MMMM d, yyyy')}</div>
+                <div className="text-sm text-gray-300">
+                  {format(parseISO(event.startDate), 'h:mm a')} - 
+                  {format(parseISO(event.endDate), 'h:mm a')}
+                </div>
               </div>
+            </div>
+            
+            {event.location && (
+              <div className="bg-gray-700/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-gray-300 mb-2">
+                  <MapPin className="w-4 h-4" />
+                  <span className="text-sm font-medium">Location</span>
+                </div>
+                <div className="text-white">{event.location}</div>
+              </div>
+            )}
+            
+            {event.address && (
+              <div className="bg-gray-700/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-gray-300 mb-2">
+                  <MapPin className="w-4 h-4" />
+                  <span className="text-sm font-medium">Address</span>
+                </div>
+                <div className="text-white">{event.address}</div>
+              </div>
+            )}
+            
+            {event.organizer && (
+              <div className="bg-gray-700/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-gray-300 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Organizer</span>
+                </div>
+                <div className="text-white">{event.organizer}</div>
+              </div>
+            )}
+            
+            {event.venue && (
+              <div className="bg-gray-700/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-gray-300 mb-2">
+                  <Building className="w-4 h-4" />
+                  <span className="text-sm font-medium">Venue</span>
+                </div>
+                <div className="text-white">{event.venue}</div>
+              </div>
+            )}
+          </div>
+          
+          {event.description && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 text-gray-300 mb-2">
+                <Info className="w-4 h-4" />
+                <span className="text-sm font-medium">Description</span>
+              </div>
+              <div className="text-white bg-gray-700/30 rounded-lg p-4">
+                {event.description}
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-end">
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Event Map Component
+const EventMap = ({ event }) => {
+  // Default to a fallback location if coordinates are not available
+  const defaultPosition = [1.3521, 103.8198]; // Singapore coordinates as fallback
+  
+  // Check if event has coordinates
+  const hasCoordinates = event.latitude && event.longitude;
+  const position = hasCoordinates 
+    ? [parseFloat(event.latitude), parseFloat(event.longitude)] 
+    : defaultPosition;
+  
+  return (
+    <div className="mt-3 sm:mt-4 h-32 sm:h-40 rounded-lg overflow-hidden">
+      <MapContainer 
+        center={position} 
+        zoom={13} 
+        style={{ height: '100%', width: '100%' }}
+        scrollWheelZoom={false}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <Marker position={position}>
+          <Popup>
+            {event.title}
+          </Popup>
+        </Marker>
+      </MapContainer>
+    </div>
+  );
+};
+
+// Upcoming Events Component
+const UpcomingEvents = ({ events, countdown }) => {
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-xl">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight">
+          Upcoming Events
+        </h2>
+      </div>
+
+      <div className="space-y-3 sm:space-y-4">
+        {events.map((event) => (
+          <div
+            key={event.id}
+            className="bg-gray-700/30 backdrop-blur-sm rounded-lg p-3 sm:p-4 hover:bg-gray-700/50 transition-all duration-200"
+          >
+            <div className="flex flex-col items-center text-center mb-3 sm:mb-4">
+              <Timer className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2" />
+              {countdown[event.id] ? (
+                <div className="text-xl sm:text-2xl font-bold text-blue-400 tracking-wider">
+                  {countdown[event.id].days}d {countdown[event.id].hours}h
+                </div>
+              ) : (
+                <div className="text-xl sm:text-2xl font-bold text-gray-400">Starting soon</div>
+              )}
+              {countdown[event.id] && (
+                <div className="text-xs sm:text-sm text-gray-300 mt-1">
+                  {countdown[event.id].minutes}m {countdown[event.id].seconds}s
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-600/50 pt-3 sm:pt-4">
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2">{event.title}</h3>
+              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-300">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  {format(parseISO(event.startDate), 'MMM d, yyyy')}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                  {format(parseISO(event.startDate), 'h:mm a')}
+                </div>
+                {event.location && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                    {event.location}
+                  </div>
+                )}
+              </div>
+              
+              {/* Event Map */}
+              {(event.latitude && event.longitude) && (
+                <EventMap event={event} />
+              )}
             </div>
           </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-          {/* Events and Agenda Sidebar */}
-          <div className="space-y-6">
-            {/* Tabs */}
-            <div className="flex items-center gap-2 bg-gray-800/50 p-1 rounded-lg">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`px-4 py-2 rounded-lg flex-1 text-center ${
-                  activeTab === "all"
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setActiveTab("events")}
-                className={`px-4 py-2 rounded-lg flex-1 text-center ${
-                  activeTab === "events"
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Events
-              </button>
-              <button
-                onClick={() => setActiveTab("agenda")}
-                className={`px-4 py-2 rounded-lg flex-1 text-center ${
-                  activeTab === "agenda"
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Agenda
-              </button>
+// Calendar Grid Component
+const CalendarGrid = ({ 
+  viewMode, 
+  currentDate, 
+  selectedDate, 
+  activities, 
+  onDayClick, 
+  onEventClick, 
+  shakingEvent 
+}) => {
+  const getDaysInView = () => {
+    if (viewMode === "month") {
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(currentDate);
+      const calendarStart = startOfWeek(monthStart);
+      const calendarEnd = endOfWeek(monthEnd);
+      
+      return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+    } else if (viewMode === "week") {
+      const weekStart = startOfWeek(currentDate);
+      const weekEnd = endOfWeek(currentDate);
+      
+      return eachDayOfInterval({ start: weekStart, end: weekEnd });
+    } else {
+      // Day view - just return the current day
+      return [currentDate];
+    }
+  };
+
+  const getActivitiesForDay = (day) => {
+    return activities.filter(activity => {
+      const activityDate = parseISO(activity.startDate);
+      return isSameDay(activityDate, day);
+    });
+  };
+
+  const renderMonthView = () => {
+    const days = getDaysInView();
+    
+    return (
+      <>
+        <div className="grid grid-cols-7 gap-2 mb-4">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <div
+              key={day}
+              className="text-center text-sm text-gray-300 font-medium py-2 tracking-wide"
+            >
+              {day}
             </div>
-
-            {/* Events List */}
-            {(activeTab === "all" || activeTab === "events") && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-blue-400">Upcoming Events</h2>
-                {events.map((event) => (
-                  <div
-                    key={event.id}
-                    className="p-4 bg-gray-800/50 rounded-xl hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                        <CalendarIcon className="w-6 h-6 text-blue-400" />
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-2">
+          {days.map((day, index) => {
+            const dayActivities = getActivitiesForDay(day);
+            const dayId = `day-${format(day, 'yyyy-MM-dd')}`;
+            return (
+              <div
+                key={index}
+                onClick={() => onDayClick(day)}
+                className={`aspect-square rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
+                  isSameDay(day, selectedDate)
+                    ? "ring-2 ring-blue-500 shadow-lg transform scale-105"
+                    : isSameMonth(day, currentDate)
+                    ? "hover:shadow-md"
+                    : "opacity-50"
+                } ${shakingEvent === dayId ? 'animate-shake' : ''}`}
+              >
+                <div className="relative h-full">
+                  {dayActivities.length > 0 ? (
+                    <>
+                      <img 
+                        src={getEventImage(dayActivities[0])} 
+                        alt={dayActivities[0].title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-2">
+                        <span className="text-white text-sm font-medium">{format(day, 'd')}</span>
+                        {dayActivities.map((activity, idx) => (
+                          <div
+                            key={idx}
+                            onClick={(e) => onEventClick(activity.id, e)}
+                            className="text-xs text-white truncate font-medium cursor-pointer"
+                          >
+                            {activity.title}
+                          </div>
+                        ))}
                       </div>
-                      <div>
-                        <h3 className="font-medium text-white">{event.title}</h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <Clock className="w-4 h-4" />
-                          <span>{event.time}</span>
+                    </>
+                  ) : (
+                    <div className="h-full flex items-center justify-center bg-gray-800/30">
+                      <span className="text-gray-400 text-sm font-medium">{format(day, 'd')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    );
+  };
+
+  const renderWeekView = () => {
+    const days = getDaysInView();
+    
+    return (
+      <div className="grid grid-cols-7 gap-4">
+        {days.map((day, index) => {
+          const dayActivities = getActivitiesForDay(day);
+          return (
+            <div
+              key={index}
+              onClick={() => onDayClick(day)}
+              className={`rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
+                isSameDay(day, selectedDate)
+                  ? "ring-2 ring-blue-500 shadow-lg transform scale-105"
+                  : "hover:shadow-md"
+              }`}
+            >
+              <div className="text-center mb-2">
+                <div className="text-sm text-gray-300 font-medium">{format(day, 'EEE')}</div>
+                <div className="text-xl font-bold tracking-wide">{format(day, 'd')}</div>
+              </div>
+              <div className="h-32 overflow-y-auto space-y-1">
+                {dayActivities.map((activity, idx) => (
+                  <div
+                    key={idx}
+                    onClick={(e) => onEventClick(activity.id, e)}
+                    className={`relative h-16 rounded overflow-hidden cursor-pointer ${
+                      shakingEvent === activity.id ? 'animate-shake' : ''
+                    }`}
+                  >
+                    <img 
+                      src={getEventImage(activity)} 
+                      alt={activity.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-1">
+                      <div className="text-xs font-medium text-white truncate">{activity.title}</div>
+                      <div className="text-xs text-white/80">
+                        {format(parseISO(activity.startDate), 'h:mm a')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderDayView = () => {
+    const dayActivities = getActivitiesForDay(currentDate);
+    
+    return (
+      <div className="p-4">
+        <div className="h-[calc(100vh-300px)] overflow-y-auto">
+          {Array.from({ length: 24 }).map((_, hour) => {
+            const hourActivities = dayActivities.filter(activity => {
+              const activityDate = parseISO(activity.startDate);
+              return activityDate.getHours() === hour;
+            });
+
+            return (
+              <div key={hour} className="flex border-b border-gray-700/50 py-2">
+                <div className="w-20 text-right pr-4 text-sm text-gray-300 font-medium">
+                  {format(new Date().setHours(hour, 0), 'h a')}
+                </div>
+                <div className="flex-1 min-h-[60px] space-y-1">
+                  {hourActivities.map((activity, idx) => (
+                    <div
+                      key={idx}
+                      onClick={(e) => onEventClick(activity.id, e)}
+                      className={`relative h-16 rounded overflow-hidden cursor-pointer ${
+                        shakingEvent === activity.id ? 'animate-shake' : ''
+                      }`}
+                    >
+                      <img 
+                        src={getEventImage(activity)} 
+                        alt={activity.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-2">
+                        <div className="text-xs font-medium text-white">{activity.title}</div>
+                        <div className="text-xs text-white/80">
+                          {format(parseISO(activity.startDate), 'h:mm a')} - 
+                          {format(parseISO(activity.endDate), 'h:mm a')}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-400">{event.location}</span>
-                      </div>
-                      <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-full">
-                        {event.type}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            )}
-
-            {/* Agenda List */}
-            {(activeTab === "all" || activeTab === "agenda") && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-yellow-400">Agenda Items</h2>
-                {agendaItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 bg-gray-800/50 rounded-xl hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                        <ListChecks className="w-6 h-6 text-yellow-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-white">{item.title}</h3>
-                        <p className="text-sm text-gray-400">{item.relatedEvent}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <Clock className="w-4 h-4" />
-                        <span>{item.time}</span>
-                      </div>
-                      <span
-                        className={`px-2 py-1 ${
-                          item.status === "pending"
-                            ? "bg-yellow-500/10 text-yellow-400"
-                            : "bg-red-500/10 text-red-400"
-                        } text-xs rounded-full`}
-                      >
-                        {item.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            );
+          })}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-xl">
+      {viewMode === "month" && renderMonthView()}
+      {viewMode === "week" && renderWeekView()}
+      {viewMode === "day" && renderDayView()}
+    </div>
+  );
+};
+
+// Main Calendar Component
+export default function Calendar() {
+  const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState("month"); // month, week, day
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [showFilters, setShowFilters] = useState(false);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState({});
+  const [shakingEvent, setShakingEvent] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Fetch activities
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setLoading(true);
+        const response = await axiosInstance().post('/activity/student/my');
+        if (response.data.isSuccess) {
+          setActivities(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
+
+  // Calculate countdown for each upcoming event
+  useEffect(() => {
+    const calculateCountdown = () => {
+      const now = new Date();
+      const newCountdown = {};
+      
+      activities.forEach(activity => {
+        const startDate = parseISO(activity.startDate);
+        if (startDate > now) {
+          const diff = startDate - now;
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          
+          newCountdown[activity.id] = {
+            days,
+            hours,
+            minutes,
+            seconds
+          };
+        }
+      });
+      
+      setCountdown(newCountdown);
+    };
+    
+    calculateCountdown();
+    const timer = setInterval(calculateCountdown, 1000);
+    
+    return () => clearInterval(timer);
+  }, [activities]);
+
+  // Get upcoming events sorted by date
+  const getUpcomingEvents = () => {
+    const now = new Date();
+    return activities
+      .filter(activity => parseISO(activity.startDate) > now)
+      .sort((a, b) => parseISO(a.startDate) - parseISO(b.startDate))
+      .slice(0, 5); // Show only next 5 events
+  };
+
+  // Event handlers
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+  };
+
+  const handleDateNavigation = (direction) => {
+    let newDate;
+    
+    if (viewMode === "month") {
+      newDate = direction === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1);
+    } else if (viewMode === "week") {
+      newDate = direction === "prev" ? subWeeks(currentDate, 1) : addWeeks(currentDate, 1);
+    } else {
+      newDate = direction === "prev" ? subDays(currentDate, 1) : addDays(currentDate, 1);
+    }
+    
+    setCurrentDate(newDate);
+  };
+
+  const handleDayClick = (day) => {
+    setSelectedDate(day);
+    
+    // Only apply shake effect in month view
+    if (viewMode === "month") {
+      setShakingEvent(`day-${format(day, 'yyyy-MM-dd')}`);
+      setTimeout(() => {
+        setShakingEvent(null);
+      }, 500); // Shake duration
+    }
+  };
+
+  const handleFilterChange = (type, value) => {
+    let newDate = new Date(currentDate);
+    
+    switch(type) {
+      case 'year':
+        newDate = setYear(newDate, parseInt(value));
+        break;
+      case 'month':
+        newDate = setMonth(newDate, parseInt(value));
+        break;
+      case 'day':
+        newDate = setDate(newDate, parseInt(value));
+        break;
+      default:
+        break;
+    }
+    
+    setCurrentDate(newDate);
+  };
+
+  const handleEventClick = (eventId, e) => {
+    e.stopPropagation();
+    setShakingEvent(eventId);
+    setTimeout(() => {
+      setShakingEvent(null);
+    }, 500); // Shake duration
+    
+    // Find and set the selected event
+    const event = activities.find(activity => activity.id === eventId);
+    if (event) {
+      setSelectedEvent(event);
+    }
+  };
+
+  const closeEventDetails = () => {
+    setSelectedEvent(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white pt-24 px-6">
+      {/* Add custom animation styles */}
+      <style>
+        {`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+          }
+          .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+          }
+        `}
+      </style>
+
+      {/* Header */}
+      <CalendarHeader 
+        currentDate={currentDate}
+        viewMode={viewMode}
+        onNavigate={handleDateNavigation}
+        onFilterToggle={() => setShowFilters(!showFilters)}
+        showFilters={showFilters}
+      />
+
+      {/* View Mode Toggle */}
+      <ViewModeToggle 
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+      />
+
+      {/* Filter Dropdown */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="relative">
+          <FilterDropdown 
+            showFilters={showFilters}
+            currentDate={currentDate}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
+      </div>
+
+      {/* Main Content - Calendar View */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Calendar Section */}
+          <div className="lg:col-span-2">
+            <CalendarGrid 
+              viewMode={viewMode}
+              currentDate={currentDate}
+              selectedDate={selectedDate}
+              activities={activities}
+              onDayClick={handleDayClick}
+              onEventClick={handleEventClick}
+              shakingEvent={shakingEvent}
+            />
+          </div>
+
+          {/* Upcoming Events Section */}
+          <UpcomingEvents 
+            events={getUpcomingEvents()}
+            countdown={countdown}
+          />
+        </div>
+      </div>
+
+      {/* Event Details Modal */}
+      <EventDetailsModal 
+        event={selectedEvent}
+        onClose={closeEventDetails}
+      />
     </div>
   );
 } 

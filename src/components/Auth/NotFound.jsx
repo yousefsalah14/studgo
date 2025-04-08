@@ -110,7 +110,7 @@ export default function NotFound() {
                 repeatType: "reverse",
                 ease: "easeInOut"
               }}
-              className="w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] h-auto object-contain mx-auto mb-6" 
+              className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] h-auto object-contain mx-auto mb-4" 
               src="./../../../notfound.png" 
               alt="Lost Astronaut"
             />

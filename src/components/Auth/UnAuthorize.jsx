@@ -60,7 +60,7 @@ function UnAuthorize() {
                 className="absolute inset-0 blur-xl bg-red-500/20 rounded-full"
               />
               <img 
-                className="w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] h-auto object-contain mx-auto mb-6" 
+                className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] h-auto object-contain mx-auto mb-4" 
                 src="./../../../unAuth.png" 
                 alt="Unauthorized Access"
               />

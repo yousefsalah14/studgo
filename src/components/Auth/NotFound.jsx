@@ -5,7 +5,7 @@ export default function NotFound() {
   const { currentUser } = useAuthStore();
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
       {/* Stars background */}
       <div className="absolute inset-0">
         <div className="stars"></div>
@@ -80,7 +80,7 @@ export default function NotFound() {
         </motion.div>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-8">
+      <div className="relative z-10 flex flex-col items-center justify-center h-full px-4">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -110,7 +110,7 @@ export default function NotFound() {
                 repeatType: "reverse",
                 ease: "easeInOut"
               }}
-              className="w-full max-w-[300px] sm:max-w-[350px] md:max-w-[400px] h-auto object-contain mx-auto mb-12" 
+              className="w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] h-auto object-contain mx-auto mb-6" 
               src="./../../../notfound.png" 
               alt="Lost Astronaut"
             />
@@ -121,27 +121,27 @@ export default function NotFound() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-center flex flex-col items-center gap-y-4"
+            className="text-center flex flex-col items-center gap-y-3"
           >
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center justify-center gap-x-4">
-                <span className="font-bold text-6xl sm:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                <span className="font-bold text-4xl sm:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
                   404
                 </span>
-                <div className="h-16 w-0.5 bg-gray-600 hidden sm:block"></div>
-                <h1 className="hidden sm:block text-3xl sm:text-4xl font-bold text-white">
+                <div className="h-12 w-0.5 bg-gray-600 hidden sm:block"></div>
+                <h1 className="hidden sm:block text-2xl sm:text-3xl font-bold text-white">
                   Page Not Found
                 </h1>
               </div>
-              <h1 className="sm:hidden text-3xl font-bold text-white">
+              <h1 className="sm:hidden text-2xl font-bold text-white">
                 Page Not Found
               </h1>
               
               <div className="relative">
-                <p className="text-xl sm:text-2xl font-semibold text-white mb-2">
+                <p className="text-lg sm:text-xl font-semibold text-white mb-2">
                   Lost in Deep Space!
                 </p>
-                <p className="text-base sm:text-lg text-gray-300 max-w-md mx-auto">
+                <p className="text-sm sm:text-base text-gray-300 max-w-md mx-auto">
                   Houston, we have a problem! The page you're looking for seems to have drifted into a cosmic void.
                 </p>
               </div>
@@ -149,15 +149,15 @@ export default function NotFound() {
 
             {/* Enhanced button */}
             <motion.div 
-              className="mt-8"
+              className="mt-6"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <a
                 href={currentUser?.role === "StudentActivity" ? "/student-activity" : "/"}
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-sm"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 Return to Earth

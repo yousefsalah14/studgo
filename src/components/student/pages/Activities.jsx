@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery } from 'react-query';
-import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { axiosInstance } from '../../../lib/axios';
 
@@ -220,67 +220,85 @@ function Activities() {
     <div className="min-h-screen bg-gray-900 text-white pt-16">
       <HeroSection />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <QuickStats 
           totalActivities={statesData?.totalActivities || 0} 
           appliedActivities={(statesData?.appliedEvents || 0) + (statesData?.appliedWorkshops || 0)}
           upcomingActivities={statesData?.upcomingActivities || 0}
         />
         
-        <SearchAndFilter 
-          searchQuery={searchInput}
-          setSearchQuery={handleSearchInputChange}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={handleCategoryChange}
-          selectedActivityType={selectedActivityType}
-          setSelectedActivityType={handleActivityTypeChange}
-          onSearch={handleSearchSubmit}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {filteredActivities.map((activity) => (
-            <ActivityCard
-              key={activity.id}
-              activity={activity}
-              isApplied={appliedActivityIds.includes(activity.id)}
-              onApply={() => handleApply(activity.id)}
-            />
-          ))}
+        <div className="mt-8">
+          <SearchAndFilter 
+            searchQuery={searchInput}
+            setSearchQuery={handleSearchInputChange}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={handleCategoryChange}
+            selectedActivityType={selectedActivityType}
+            setSelectedActivityType={handleActivityTypeChange}
+            onSearch={handleSearchSubmit}
+          />
         </div>
 
-        {/* Pagination - Always visible */}
-        <div className="flex justify-center items-center gap-4 mt-8 p-4 bg-gray-800 rounded-lg">
-          <button
-            onClick={handlePrevPage}
-            disabled={pageIndex === 0}
-            className={`p-3 rounded-lg flex items-center gap-2 ${
-              pageIndex === 0
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-500'
-            }`}
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Previous
-          </button>
-          <span className="text-white px-4 py-2 bg-gray-700 rounded-lg">
-            Page {pageIndex + 1} of {totalPages || 1}
-          </span>
-          <button
-            onClick={handleNextPage}
-            disabled={pageIndex >= (totalPages - 1)}
-            className={`p-3 rounded-lg flex items-center gap-2 ${
-              pageIndex >= (totalPages - 1)
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-500'
-            }`}
-          >
-            Next
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+        {filteredActivities.length === 0 ? (
+          <div className="flex justify-center items-center min-h-[200px] mt-8">
+            <div className="text-center p-6 bg-gray-800 rounded-lg w-full max-w-md">
+              <p className="text-xl text-gray-300">No activities found</p>
+              <p className="text-gray-400 mt-2">Try adjusting your search or filters</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+            {filteredActivities.map((activity) => (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                isApplied={appliedActivityIds.includes(activity.id)}
+                onApply={() => handleApply(activity.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {filteredActivities.length > 0 && (
+          <div className="flex justify-center mt-8">
+            <div className="flex items-center gap-2 bg-gray-800 p-2 rounded-lg">
+              <button
+                onClick={handlePrevPage}
+                disabled={pageIndex === 0}
+                className={`flex items-center justify-center rounded-md px-2 py-1.5 sm:px-3 sm:py-2 ${
+                  pageIndex === 0
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white'
+                }`}
+              >
+                <ChevronLeft className="h-5 w-5" />
+                <span className="hidden sm:inline ml-1">Previous</span>
+              </button>
+              
+              <div className="flex items-center justify-center px-3 py-1.5 bg-gray-700 rounded-md text-sm">
+                <span className="text-gray-300">
+                  {pageIndex + 1} of {totalPages || 1}
+                </span>
+              </div>
+              
+              <button
+                onClick={handleNextPage}
+                disabled={pageIndex >= totalPages - 1}
+                className={`flex items-center justify-center rounded-md px-2 py-1.5 sm:px-3 sm:py-2 ${
+                  pageIndex >= totalPages - 1
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white'
+                }`}
+              >
+                <span className="hidden sm:inline mr-1">Next</span>
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default Activities; 
+export default Activities;

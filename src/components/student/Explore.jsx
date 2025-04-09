@@ -11,7 +11,7 @@ const ExploreSection = () => {
     {
       title: "Events",
       description: "Stay updated on the latest educational events, career fairs, and student meetups to grow your network and explore new opportunities.",
-      link: "/events",
+      link: "/activities",
       icon: "📅",
     },
     {

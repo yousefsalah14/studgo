@@ -24,11 +24,12 @@ import {Toaster} from 'react-hot-toast'
 import ForgotPassword from './components/Auth/ForgetPassword.jsx';
 import ResetCode from './components/Auth/RestCode.jsx';
 import Profile from './components/student/pages/profile.jsx';
-import Events from './components/student/pages/Events.jsx';
+import Activities from './components/student/pages/Activities.jsx';
 import Workshops from './components/student/pages/Workshops.jsx';
 import Calendar from './components/student/pages/Calendar.jsx';
 import Internships from './components/student/pages/Internships.jsx';
 import WorkshopDetails from './components/student/pages/WorkshopDetails';
+import ActivityDetails from './components/student/pages/ActivityDetails';
 import GoogleCallback from './components/Auth/GoogleCallback';
 import { useEffect } from 'react';
 
@@ -65,11 +66,12 @@ function App() {
       { path: 'student-activities', element: <ProtectedRoute requiredRole="Student"><StudentActivityHome /></ProtectedRoute> },
       { path: 'profile', element: <ProtectedRoute requiredRole="Student"><Profile /></ProtectedRoute> },
       { path: 'calendar', element: <ProtectedRoute requiredRole="Student"><Calendar /></ProtectedRoute> },
-      { path: 'events', element: <ProtectedRoute requiredRole="Student"><Events /></ProtectedRoute> },
+      { path: 'activities', element: <ProtectedRoute requiredRole="Student"><Activities /></ProtectedRoute> },
       { path: 'workshops', element: <ProtectedRoute requiredRole="Student"><Workshops /></ProtectedRoute> },
       { path: 'interns', element: <ProtectedRoute requiredRole="Student"><Internships /></ProtectedRoute> },
       { path: 'studentactivity/:id', element: <ProtectedRoute requiredRole="Student"><StudentActivityDetails /></ProtectedRoute> },
       { path: 'workshops/:id', element: <WorkshopDetails /> },
+      { path: 'activities/:id', element: <ActivityDetails /> },
     ],
   };
 

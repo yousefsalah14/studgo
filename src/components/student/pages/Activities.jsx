@@ -5,19 +5,17 @@ import { toast } from 'react-hot-toast';
 import { axiosInstance } from '../../../lib/axios';
 
 // Import components
-import HeroSection from '../components/Events/HeroSection';
-import QuickStats from '../components/Events/QuickStats';
-import SearchAndFilter from '../components/Events/SearchAndFilter';
-import EventCard from '../components/Events/EventCard';
-import EventDetailsModal from '../components/Events/EventDetailsModal';
+import HeroSection from '../components/Activities/HeroSection';
+import QuickStats from '../components/Activities/QuickStats';
+import SearchAndFilter from '../components/Activities/SearchAndFilter';
+import ActivityCard from '../components/Activities/ActivityCard';
 
-function Events() {
+function Activities() {
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [showModal, setShowModal] = useState(false);
-  const [currentEvent, setCurrentEvent] = useState(null);
-  const [appliedEventIds, setAppliedEventIds] = useState([]);
+  const [selectedActivityType, setSelectedActivityType] = useState('All');
+  const [appliedActivityIds, setAppliedActivityIds] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
   const pageSize = 10;
 
@@ -30,18 +28,19 @@ function Events() {
     }
   );
 
-  // Fetch events data with filtering
-  const { data: eventsData = { data: [], count: 0 }, isLoading: eventsLoading, error } = useQuery(
-    ['events', searchQuery, selectedCategory, pageIndex],
+  // Fetch activities data with filtering
+  const { data: activitiesData = { data: [], count: 0 }, isLoading: activitiesLoading, error } = useQuery(
+    ['activities', searchQuery, selectedCategory, selectedActivityType, pageIndex],
     async () => {
       const { data } = await axiosInstance().get("/activity/filter", {
         params: {
           Name: searchQuery,
-          ActivityType: "Event",
           PageIndex: pageIndex,
           PageSize: pageSize,
           // Only include category filter if not "All"
-          ...(selectedCategory !== 'All' && { ActivityCategory: selectedCategory })
+          ...(selectedCategory !== 'All' && { ActivityCategory: selectedCategory }),
+          // Only include activity type filter if not "All"
+          ...(selectedActivityType !== 'All' && { ActivityType: selectedActivityType })
         }
       });
       return data;
@@ -51,68 +50,68 @@ function Events() {
     }
   );
 
-  // Check applied status for each event
-  const checkAppliedStatus = async (eventId) => {
+  // Check applied status for each activity
+  const checkAppliedStatus = async (activityId) => {
     try {
-      console.log(`Checking applied status for event ${eventId}...`);
+      console.log(`Checking applied status for activity ${activityId}...`);
       const response = await axiosInstance().get("/activity/student/applied", {
-        params: { activityId: eventId }
+        params: { activityId: activityId }
       });
       
-      console.log(`Response for event ${eventId}:`, response.data);
+      console.log(`Response for activity ${activityId}:`, response.data);
       
       // If the API call was successful (status 200), it means the user has applied
-      // The API returns a 200 status code when the user has applied to the event
+      // The API returns a 200 status code when the user has applied to the activity
       return true;
     } catch (error) {
       // If the API returns a 404, it means the user has not applied
       if (error.response && error.response.status === 404) {
-        console.log(`User has not applied to event ${eventId}`);
+        console.log(`User has not applied to activity ${activityId}`);
         return false;
       }
       
-      console.error(`Error checking applied status for event ${eventId}:`, error);
+      console.error(`Error checking applied status for activity ${activityId}:`, error);
       return false;
     }
   };
 
-  // Update applied status for all events when events data changes
+  // Update applied status for all activities when activities data changes
   useEffect(() => {
     const updateAppliedStatus = async () => {
-      if (!eventsData.data || eventsData.data.length === 0) return;
+      if (!activitiesData.data || activitiesData.data.length === 0) return;
       
       // Only check if user is logged in
       if (!localStorage.getItem('accessToken')) {
         console.log('User not logged in, skipping applied status check');
-        setAppliedEventIds([]);
+        setAppliedActivityIds([]);
         return;
       }
       
-      console.log('Checking applied status for all events...');
+      console.log('Checking applied status for all activities...');
       const appliedIds = [];
       
-      // Check each event's applied status
-      for (const event of eventsData.data) {
-        const isApplied = await checkAppliedStatus(event.id);
+      // Check each activity's applied status
+      for (const activity of activitiesData.data) {
+        const isApplied = await checkAppliedStatus(activity.id);
         if (isApplied) {
-          console.log(`User has applied to event ${event.id}`);
-          appliedIds.push(event.id);
+          console.log(`User has applied to activity ${activity.id}`);
+          appliedIds.push(activity.id);
         }
       }
       
-      console.log('Applied event IDs:', appliedIds);
-      setAppliedEventIds(appliedIds);
+      console.log('Applied activity IDs:', appliedIds);
+      setAppliedActivityIds(appliedIds);
     };
     
     updateAppliedStatus();
-  }, [eventsData.data]);
+  }, [activitiesData.data]);
 
-  const isLoading = statesLoading || eventsLoading;
+  const isLoading = statesLoading || activitiesLoading;
 
-  const filteredEvents = eventsData.data;
+  const filteredActivities = activitiesData.data;
 
   // Calculate total pages using the count from API
-  const totalPages = Math.ceil(eventsData.count / pageSize);
+  const totalPages = Math.ceil(activitiesData.count / pageSize);
 
   // Handle page navigation
   const handlePrevPage = () => {
@@ -143,24 +142,30 @@ function Events() {
     setPageIndex(0);
   };
 
+  const handleActivityTypeChange = (value) => {
+    setSelectedActivityType(value);
+    // Reset to first page when activity type changes
+    setPageIndex(0);
+  };
+
   const handleApply = async (id) => {
     try {
       // Check if user is logged in
       const token = localStorage.getItem('accessToken');
       if (!token) {
-        toast.error('You need to be logged in to apply for events.');
+        toast.error('You need to be logged in to apply for activities.');
         return;
       }
       
-      // Call the apply endpoint with the event ID
+      // Call the apply endpoint with the activity ID
       await axiosInstance().post(`/activity/${id}/apply`);
       
-      // Add the event ID to appliedEventIds
-      setAppliedEventIds([...appliedEventIds, id]);
+      // Add the activity ID to appliedActivityIds
+      setAppliedActivityIds([...appliedActivityIds, id]);
       
-      toast.success('Successfully applied to the event!');
+      toast.success('Successfully applied to the activity!');
     } catch (error) {
-      console.error('Error applying to event:', error);
+      console.error('Error applying to activity:', error);
       
       // Handle 400 Bad Request errors
       if (error.response && error.response.status === 400) {
@@ -189,14 +194,14 @@ function Events() {
           // If there's a single error message
           toast.error(error.response.data.message);
         } else {
-          toast.error('Failed to apply to the event. Please check your input and try again.');
+          toast.error('Failed to apply to the activity. Please check your input and try again.');
         }
       } else if (error.response && error.response.status === 401) {
         // Handle unauthorized error
-        toast.error('You need to be logged in to apply for events.');
+        toast.error('You need to be logged in to apply for activities.');
       } else {
         // Generic error for other status codes
-        toast.error('Failed to apply to the event. Please try again later.');
+        toast.error('Failed to apply to the activity. Please try again later.');
       }
     }
   };
@@ -214,31 +219,21 @@ function Events() {
       <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
         <div className="text-red-500 flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
-          Failed to load events. Please try again later.
+          Failed to load activities. Please try again later.
         </div>
       </div>
     );
   }
 
-  const openEventDetails = (event) => {
-    setCurrentEvent(event);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setCurrentEvent(null);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white pt-16">
       <HeroSection />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <QuickStats 
-          totalEvents={statesData?.totalEvents || 0} 
-          appliedEvents={statesData?.appliedEvents || 0}
-          upcomingEvents={statesData?.upcomingEvents || 0}
+          totalActivities={statesData?.totalActivities || 0} 
+          appliedActivities={statesData?.appliedActivities || 0}
+          upcomingActivities={statesData?.upcomingActivities || 0}
         />
         
         <SearchAndFilter 
@@ -246,70 +241,55 @@ function Events() {
           setSearchQuery={handleSearchInputChange}
           selectedCategory={selectedCategory}
           setSelectedCategory={handleCategoryChange}
+          selectedActivityType={selectedActivityType}
+          setSelectedActivityType={handleActivityTypeChange}
           onSearch={handleSearchSubmit}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {filteredEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onViewDetails={openEventDetails}
-              onApply={handleApply}
-              isApplied={appliedEventIds.includes(event.id)}
+          {filteredActivities.map((activity) => (
+            <ActivityCard
+              key={activity.id}
+              activity={activity}
+              isApplied={appliedActivityIds.includes(activity.id)}
+              onApply={() => handleApply(activity.id)}
             />
           ))}
         </div>
 
-        {/* Pagination Controls with Count Information */}
-        <div className="mt-8 flex flex-col items-center gap-4">
-          <div className="text-gray-300 text-sm">
-            Showing {filteredEvents.length} of {eventsData.count} events
-          </div>
-          <div className="flex items-center gap-4">
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-8">
             <button
               onClick={handlePrevPage}
               disabled={pageIndex === 0}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+              className={`p-2 rounded-lg ${
                 pageIndex === 0
                   ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-500'
               }`}
             >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
+              <ChevronLeft className="w-5 h-5" />
             </button>
-            
-            <span className="text-gray-300">
+            <span className="text-white">
               Page {pageIndex + 1} of {totalPages}
             </span>
-            
             <button
               onClick={handleNextPage}
               disabled={pageIndex === totalPages - 1}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+              className={`p-2 rounded-lg ${
                 pageIndex === totalPages - 1
                   ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-500'
               }`}
             >
-              Next
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-        </div>
-
-        {showModal && (
-          <EventDetailsModal
-            event={currentEvent}
-            onClose={closeModal}
-            onApply={handleApply}
-            isApplied={appliedEventIds.includes(currentEvent.id)}
-          />
         )}
       </div>
     </div>
   );
 }
 
-export default Events;
+export default Activities; 

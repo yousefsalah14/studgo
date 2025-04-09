@@ -95,62 +95,51 @@ function ActivityCard({ activity, onApply, isApplied }) {
   };
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-gray-800/70 transition-all duration-300">
-      <div className="h-48 relative">
+    <div className="bg-gray-800 rounded-xl overflow-hidden hover:transform hover:scale-[1.02] transition-all duration-300 shadow-xl">
+      {/* Image Section */}
+      <div className="relative h-48">
         <img 
-          src={imageUrl}
-          alt={title}
+          src={imageUrl} 
+          alt={title} 
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>
-        <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-          <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm flex items-center gap-1">
-            <Tag className="w-3 h-3" />
-            {activityType || "Activity"}
-          </span>
-          <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm flex items-center gap-1">
-            <Tag className="w-3 h-3" />
-            {formatCategory(activityCategory)}
-          </span>
-          {isActivityOpen() ? (
-            <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm flex items-center gap-1">
-              <Unlock className="w-3 h-3" />
-              Open
+        <div className="absolute top-4 right-4 flex gap-2">
+          {isApplied && (
+            <span className="px-3 py-1 bg-green-500/80 backdrop-blur-sm text-white text-sm rounded-full flex items-center gap-1">
+              <CheckCircle className="w-4 h-4" />
+              Applied
             </span>
-          ) : (
-            <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm flex items-center gap-1">
-              <Lock className="w-3 h-3" />
-              Closed
+          )}
+          {isDeadlinePassed() && (
+            <span className="px-3 py-1 bg-red-500/80 backdrop-blur-sm text-white text-sm rounded-full flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              Deadline Passed
             </span>
           )}
         </div>
-        {isApplied && (
-          <div className="absolute top-3 right-3 bg-green-600 text-white px-3 py-1 rounded-full flex items-center gap-1 text-sm font-medium">
-            <CheckCircle className="w-4 h-4" />
-            Applied
-          </div>
-        )}
-        {isDeadlinePassed() && (
-          <div className={`absolute top-3 ${isApplied ? 'right-3 translate-x-[-120px]' : 'right-3'} bg-red-600 text-white px-3 py-1 rounded-full flex items-center gap-1 text-sm font-medium`}>
-            <AlertCircle className="w-4 h-4" />
-            Deadline Passed
-          </div>
-        )}
       </div>
 
+      {/* Content Section */}
       <div className="p-6">
+        {/* Title and Category */}
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-            <div className="flex items-center gap-2 text-gray-400">
-              <User className="w-4 h-4" />
-              <span className="text-sm">Organized by {activity.studentActivityName}</span>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full">
+                {formatCategory(activityCategory)}
+              </span>
+              <span className="px-3 py-1 bg-purple-500/20 text-purple-400 text-sm rounded-full">
+                {activityType}
+              </span>
             </div>
           </div>
         </div>
 
+        {/* Description */}
         <p className="text-gray-400 mb-4 line-clamp-2">{description}</p>
 
+        {/* Activity Details */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center gap-2 text-gray-300">
             <Calendar className="w-4 h-4 text-blue-400" />
@@ -166,7 +155,7 @@ function ActivityCard({ activity, onApply, isApplied }) {
           </div>
           <div className="flex items-center gap-2 text-gray-300">
             <Users className="w-4 h-4 text-blue-400" />
-            <span className="text-sm">{activity.numberOfSeats || "Unlimited"} seats available</span>
+            <span className="text-sm">{activity.numberOfSeats === 0 ? "0" : activity.numberOfSeats || "Unlimited"} seats available</span>
           </div>
           {deadlineDate && (
             <div className="flex items-center gap-2 text-gray-300 col-span-2">
@@ -176,45 +165,41 @@ function ActivityCard({ activity, onApply, isApplied }) {
           )}
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between">
           <button
             onClick={handleViewDetails}
-            className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+            className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
           >
             View Details
-            <BadgeInfo className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4" />
           </button>
-          
-          {hasAgenda && (
-            <a
-              href={agendaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors flex items-center gap-2"
-            >
-              View Agenda
-              <FileText className="w-4 h-4" />
-            </a>
-          )}
-          
-          {!isApplied && isActivityOpen() && !isDeadlinePassed() && !hasActivityStarted() && (
+          {!isApplied && !isDeadlinePassed() && !hasActivityStarted() && (
             <button
-              onClick={() => onApply(activity.id)}
+              onClick={onApply}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center gap-2"
             >
-              Apply
-              <ChevronRight className="w-4 h-4" />
+              <CheckCircle className="w-4 h-4" />
+              Apply Now
             </button>
           )}
-          
-          {!isApplied && (!isActivityOpen() || isDeadlinePassed() || hasActivityStarted()) && (
-            <button
-              disabled
-              className="px-4 py-2 bg-gray-700 text-gray-400 rounded-lg cursor-not-allowed flex items-center gap-2"
-            >
-              {!isActivityOpen() ? 'Closed' : isDeadlinePassed() ? 'Deadline Passed' : 'Already Started'}
+          {isApplied && (
+            <span className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Applied
+            </span>
+          )}
+          {isDeadlinePassed() && !isApplied && (
+            <span className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
-            </button>
+              Deadline Passed
+            </span>
+          )}
+          {hasActivityStarted() && !isApplied && (
+            <span className="px-4 py-2 bg-gray-500/20 text-gray-400 rounded-lg flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              Activity Started
+            </span>
           )}
         </div>
       </div>

@@ -223,7 +223,7 @@ function ActivityDetails() {
 
   // Check if user can apply
   const canApply = () => {
-    return !isApplied && isActivityOpen() && !isDeadlinePassed() && !hasActivityStarted();
+    return !isApplied && !isDeadlinePassed() && !hasActivityStarted();
   };
 
   if (loading) {
@@ -313,17 +313,6 @@ function ActivityDetails() {
                 <Tag className="w-3 h-3" />
                 {formatCategory(activity.activityCategory)}
               </span>
-              {isActivityOpen() ? (
-                <span className="px-3 py-1 bg-green-500/30 backdrop-blur-sm text-green-300 rounded-full text-sm flex items-center gap-1">
-                  <Unlock className="w-3 h-3" />
-                  Open
-                </span>
-              ) : (
-                <span className="px-3 py-1 bg-red-500/30 backdrop-blur-sm text-red-300 rounded-full text-sm flex items-center gap-1">
-                  <Lock className="w-3 h-3" />
-                  Closed
-                </span>
-              )}
               {isUpcoming && (
                 <span className="px-3 py-1 bg-green-500/30 backdrop-blur-sm text-green-300 rounded-full text-sm flex items-center gap-1">
                   <CalendarIcon className="w-3 h-3" />

@@ -24,6 +24,7 @@ function Activities() {
     'states',
     async () => {
       const { data } = await axiosInstance().get("/State/GetStates");
+      console.log('States Data:', data);
       return data.data;
     }
   );
@@ -43,6 +44,7 @@ function Activities() {
           ...(selectedActivityType !== 'All' && { ActivityType: selectedActivityType })
         }
       });
+      console.log('API Response:', data);
       return data;
     },
     {
@@ -109,9 +111,13 @@ function Activities() {
   const isLoading = statesLoading || activitiesLoading;
 
   const filteredActivities = activitiesData.data;
+  console.log('Activities Data:', activitiesData);
+  console.log('Filtered Activities:', filteredActivities);
 
   // Calculate total pages using the count from API
   const totalPages = Math.ceil(activitiesData.count / pageSize);
+  console.log('Total Pages:', totalPages);
+  console.log('Current Page Index:', pageIndex);
 
   // Handle page navigation
   const handlePrevPage = () => {
@@ -232,7 +238,7 @@ function Activities() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <QuickStats 
           totalActivities={statesData?.totalActivities || 0} 
-          appliedActivities={statesData?.appliedActivities || 0}
+          appliedActivities={(statesData?.appliedEvents || 0) + (statesData?.appliedWorkshops || 0)}
           upcomingActivities={statesData?.upcomingActivities || 0}
         />
         
@@ -257,36 +263,36 @@ function Activities() {
           ))}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-8">
-            <button
-              onClick={handlePrevPage}
-              disabled={pageIndex === 0}
-              className={`p-2 rounded-lg ${
-                pageIndex === 0
-                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-500'
-              }`}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <span className="text-white">
-              Page {pageIndex + 1} of {totalPages}
-            </span>
-            <button
-              onClick={handleNextPage}
-              disabled={pageIndex === totalPages - 1}
-              className={`p-2 rounded-lg ${
-                pageIndex === totalPages - 1
-                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-500'
-              }`}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+        {/* Pagination - Always visible */}
+        <div className="flex justify-center items-center gap-4 mt-8 p-4 bg-gray-800 rounded-lg">
+          <button
+            onClick={handlePrevPage}
+            disabled={pageIndex === 0}
+            className={`p-3 rounded-lg flex items-center gap-2 ${
+              pageIndex === 0
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-500'
+            }`}
+          >
+            <ChevronLeft className="w-5 h-5" />
+            Previous
+          </button>
+          <span className="text-white px-4 py-2 bg-gray-700 rounded-lg">
+            Page {pageIndex + 1} of {totalPages || 1}
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={pageIndex >= (totalPages - 1)}
+            className={`p-3 rounded-lg flex items-center gap-2 ${
+              pageIndex >= (totalPages - 1)
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-500'
+            }`}
+          >
+            Next
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider, useNavigate, Outlet } from 'react-router-dom';
 import './App.css'
 
 import Login from './components/Auth/Login.jsx';
@@ -29,6 +29,8 @@ import Workshops from './components/student/pages/Workshops.jsx';
 import Calendar from './components/student/pages/Calendar.jsx';
 import Internships from './components/student/pages/Internships.jsx';
 import WorkshopDetails from './components/student/pages/WorkshopDetails';
+import GoogleCallback from './components/Auth/GoogleCallback';
+import { useEffect } from 'react';
 
 // 🔥 New AuthRoute Component
 function AuthRoute({ children }) {
@@ -40,6 +42,18 @@ function AuthRoute({ children }) {
   }
 
   return children;
+}
+
+// Navigation setup component
+function NavigationSetup() {
+  const navigate = useNavigate();
+  const { setNavigate } = useAuthStore();
+
+  useEffect(() => {
+    setNavigate(navigate);
+  }, [navigate, setNavigate]);
+
+  return null;
 }
 
 function App() {
@@ -59,6 +73,20 @@ function App() {
     ],
   };
 
+  const studentActivityRoutes = {
+    path: 'student-activity',
+    element: <SaMain />,
+    children: [
+      { index: true, element: <ProtectedRoute requiredRole="StudentActivity"><SAHome /></ProtectedRoute> },
+      { path: 'events', element: <ProtectedRoute requiredRole="StudentActivity"><SaEvents /></ProtectedRoute> },
+      { path: 'workshops', element: <ProtectedRoute requiredRole="StudentActivity"><SaWorkshops /></ProtectedRoute> },
+      { path: 'talks', element: <ProtectedRoute requiredRole="StudentActivity"><SaTalks /></ProtectedRoute> },
+      { path: 'student-activities', element: <ProtectedRoute requiredRole="StudentActivity"><SaStudentActivities /></ProtectedRoute> },
+      { path: 'calendar', element: <ProtectedRoute requiredRole="StudentActivity"><SaCalendar /></ProtectedRoute> },
+      { path: 'profile', element: <ProtectedRoute requiredRole="StudentActivity"><SaProfile /></ProtectedRoute> },
+    ],
+  };
+
   const authRoutes = [
     { path: '*', element: <NotFound /> },  
     { path: '/unauthorized', element: <UnAuthorize /> }, 
@@ -66,30 +94,33 @@ function App() {
     { path: 'login', element: <AuthRoute><Login /></AuthRoute> },
     { path: '', element: <AuthRoute><Login /></AuthRoute> },
     { path: 'forget-password', element: <AuthRoute><ForgotPassword /></AuthRoute> },
-    { path: 'reset-code', element: <AuthRoute><ResetCode /></AuthRoute> }
+    { path: 'reset-code', element: <AuthRoute><ResetCode /></AuthRoute> },
+    { path: 'auth/google/callback', element: <GoogleCallback /> }
   ];
 
-  const studentActivityRoutes = {
-    path: 'student-activity',
-    element: <ProtectedRoute requiredRole="StudentActivity"><SAHome /></ProtectedRoute>,
-    children: [
-      { index: true, element: <ProtectedRoute requiredRole="StudentActivity"><SaMain /></ProtectedRoute> },
-      { path: 'events', element: <ProtectedRoute requiredRole="StudentActivity"><SaEvents /></ProtectedRoute> },
-      { path: 'workshops', element: <ProtectedRoute requiredRole="StudentActivity"><SaWorkshops /></ProtectedRoute> },
-      { path: 'talks', element: <ProtectedRoute requiredRole="StudentActivity"><SaTalks /></ProtectedRoute> },
-      { path: 'calendar', element: <ProtectedRoute requiredRole="StudentActivity"><SaCalendar /></ProtectedRoute> },
-      { path: 'student-activities', element: <ProtectedRoute requiredRole="StudentActivity"><SaStudentActivities /></ProtectedRoute> },
-      { path: 'profile', element: <ProtectedRoute requiredRole="StudentActivity"><SaProfile /></ProtectedRoute> },
-    ],
-  };
+  const routes = createBrowserRouter([
+    {
+      path: '/',
+      element: (
+        <>
+          <NavigationSetup />
+          <Outlet />
+        </>
+      ),
+      children: [
+        mainRoutes,
+        studentActivityRoutes,
+        ...authRoutes,
+      ],
+    },
+  ]);
 
-  const routes = createBrowserRouter([mainRoutes, studentActivityRoutes, ...authRoutes]);
-  const reactQueryConfig = new QueryClient({});
-  
+  const queryClient = new QueryClient();
+
   return (
-    <QueryClientProvider client={reactQueryConfig}>
+    <QueryClientProvider client={queryClient}>
       <RouterProvider router={routes} />
-      <Toaster toastOptions={{ duration: 8000 }} />
+      <Toaster position="top-center" />
     </QueryClientProvider>
   );
 }

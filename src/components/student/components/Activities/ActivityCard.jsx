@@ -61,8 +61,6 @@ function ActivityCard({ activity, onApply, isApplied }) {
 
   // Format category display
   const formatCategory = (categoryValue) => {
-    console.log("Category value:", categoryValue);
-    
     if (!categoryValue) return "Category";
     
     // Handle specific category values (case-insensitive)

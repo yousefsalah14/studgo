@@ -24,7 +24,6 @@ function Activities() {
     'states',
     async () => {
       const { data } = await axiosInstance().get("/State/GetStates");
-      console.log('States Data:', data);
       return data.data;
     }
   );
@@ -44,7 +43,6 @@ function Activities() {
           ...(selectedActivityType !== 'All' && { ActivityType: selectedActivityType })
         }
       });
-      console.log('API Response:', data);
       return data;
     },
     {
@@ -55,12 +53,9 @@ function Activities() {
   // Check applied status for each activity
   const checkAppliedStatus = async (activityId) => {
     try {
-      console.log(`Checking applied status for activity ${activityId}...`);
       const response = await axiosInstance().get("/activity/student/applied", {
         params: { activityId: activityId }
       });
-      
-      console.log(`Response for activity ${activityId}:`, response.data);
       
       // If the API call was successful (status 200), it means the user has applied
       // The API returns a 200 status code when the user has applied to the activity
@@ -68,11 +63,9 @@ function Activities() {
     } catch (error) {
       // If the API returns a 404, it means the user has not applied
       if (error.response && error.response.status === 404) {
-        console.log(`User has not applied to activity ${activityId}`);
         return false;
       }
       
-      console.error(`Error checking applied status for activity ${activityId}:`, error);
       return false;
     }
   };
@@ -84,24 +77,20 @@ function Activities() {
       
       // Only check if user is logged in
       if (!localStorage.getItem('accessToken')) {
-        console.log('User not logged in, skipping applied status check');
         setAppliedActivityIds([]);
         return;
       }
       
-      console.log('Checking applied status for all activities...');
       const appliedIds = [];
       
       // Check each activity's applied status
       for (const activity of activitiesData.data) {
         const isApplied = await checkAppliedStatus(activity.id);
         if (isApplied) {
-          console.log(`User has applied to activity ${activity.id}`);
           appliedIds.push(activity.id);
         }
       }
       
-      console.log('Applied activity IDs:', appliedIds);
       setAppliedActivityIds(appliedIds);
     };
     
@@ -111,13 +100,9 @@ function Activities() {
   const isLoading = statesLoading || activitiesLoading;
 
   const filteredActivities = activitiesData.data;
-  console.log('Activities Data:', activitiesData);
-  console.log('Filtered Activities:', filteredActivities);
 
   // Calculate total pages using the count from API
   const totalPages = Math.ceil(activitiesData.count / pageSize);
-  console.log('Total Pages:', totalPages);
-  console.log('Current Page Index:', pageIndex);
 
   // Handle page navigation
   const handlePrevPage = () => {

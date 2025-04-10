@@ -5,7 +5,7 @@ import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import { Eye, EyeOff, Loader2, Mail, Lock, User , CalendarClock } from "lucide-react";;
-import RegImg from "./../../../public/man-with-join-us-sign-for-open-recruitment.jpg"
+import RegImg from "../../assets/man-with-join-us-sign-for-open-recruitment.jpg"
 import AuthImagePattern from "./AuthImagePattern.jsx";
 
 function Register() {

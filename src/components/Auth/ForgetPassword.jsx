@@ -5,7 +5,7 @@ import axios from "axios";
 import { Mail, Loader2, KeyRound, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Lottie from "react-lottie-player";
-import hackerAnimation from "../../../public/hacker-using-laptop.json";
+import hackerAnimation from "../../assets/hacker-using-laptop.json";
 
 const ForgetPassword = () => {
     const [loading, setLoading] = useState(false);

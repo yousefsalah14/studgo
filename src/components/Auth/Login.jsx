@@ -3,7 +3,7 @@ import * as Yup from "yup";
 import { useAuthStore } from "../../store/authStore.js";
 import { useState, useEffect } from "react";
 import { Eye, EyeOff, Loader2, Mail, Lock, KeyRound } from "lucide-react";
-import LogImg from "../../../public/auth.png";
+import LogImg from "../../assets/auth.png";
 import AuthImagePattern from "./AuthImagePattern.jsx";
 import { Link, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";

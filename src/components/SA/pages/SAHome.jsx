@@ -1,26 +1,83 @@
-import { useContext } from "react";
-import Navbar from "../components/Navbar.jsx";
+import { useState, useEffect } from "react";
 import Menu from "./../components/Menu.jsx";
 import { Outlet } from "react-router-dom";
-import { Loader } from "lucide-react";
+import { Loader, Menu as MenuIcon } from "lucide-react";
+import { useAuthStore } from "../../../store/authStore.js";
 
 function SAHome() {
+    const { currentUser } = useAuthStore();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
+    // Check for screen size changes
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+            if (window.innerWidth >= 768) {
+                setIsMobileMenuOpen(false);
+            }
+        };
+
+        // Set initial state
+        handleResize();
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    // Toggle mobile menu
+    const toggleMobileMenu = () => {
+        setIsMobileMenuOpen(!isMobileMenuOpen);
+    };
+
+    // Check if user is authenticated
+    if (!currentUser) {
+        return (
+            <div className="h-screen flex flex-col items-center justify-center bg-gray-900">
+                <Loader className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                <p className="text-gray-400 animate-pulse">Loading your dashboard...</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="h-screen flex">
-            {/* Left Sidebar (Fixed) */}
-            <div className="w-[14%] md:w-[20%] lg:w-[16%] xl:w-[14%] sm:w-[10%] bg-gray-900 text-white p-3 fixed top-0 left-0 h-full overflow-y-auto">
-                <Menu />
-            </div>
+        <div className="h-screen flex flex-col md:flex-row bg-gray-900 overflow-hidden">
+            {/* Mobile Menu Overlay */}
+            {isMobileMenuOpen && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-70 z-40 md:hidden"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
 
-            {/* Right Section (Scrollable) */}
-            <div className="w-full ml-[14%] md:ml-[20%] lg:ml-[16%] xl:ml-[14%] sm:ml-[10%]  h-screen overflow-y-auto bg-gray-800">
-                <Navbar />
-                <div >
+            {/* Left Sidebar */}
+            <aside 
+                className={`fixed md:relative md:flex z-50 transition-all duration-300 transform ${
+                    isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+                }`}
+                style={{ height: '100vh', maxHeight: '100vh', overflowY: 'auto' }}
+            >
+                <Menu toggleMobileMenu={toggleMobileMenu} isMobileMenuOpen={isMobileMenuOpen} isMobile={isMobile} />
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 w-full md:pl-0 flex flex-col">
+                {/* Mobile Menu Toggle - Visible only on mobile */}
+                {isMobile && !isMobileMenuOpen && (
+                    <button
+                        onClick={toggleMobileMenu}
+                        className="fixed top-4 left-4 z-30 md:hidden bg-gray-800 text-gray-200 p-2 rounded-md shadow-lg"
+                        aria-label="Open menu"
+                    >
+                        <MenuIcon size={24} />
+                    </button>
+                )}
+                
+                {/* Content Area */}
+                <div className="p-4 md:p-6 overflow-y-auto flex-1 h-screen">
                     <Outlet />
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

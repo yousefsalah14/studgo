@@ -4,8 +4,17 @@ import Chart from "../components/Chart.jsx";
 import Attendace from "../components/Attendace.jsx";
 import EventCalendar from "../components/EventCalendar.jsx";
 import { Activity, CalendarDays, Handshake, Laptop, Podcast, Presentation, Users } from "lucide-react";
+import { Outlet } from "react-router-dom";
+import { useAuthStore } from "../../../store/authStore.js";
 
 function SaMain() {
+  const { currentUser } = useAuthStore();
+
+  // Check if user is authenticated and has StudentActivity role
+  if (!currentUser || currentUser.role !== "StudentActivity") {
+    return null;
+  }
+
   // Static data for the dashboard
   const dashboardData = {
     events: { count: 12 },
@@ -91,6 +100,7 @@ function SaMain() {
           </div>
         </div>
       </div>
+      <Outlet />
     </div>
   );
 }

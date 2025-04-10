@@ -11,14 +11,13 @@ import ProtectedRoute from './components/Auth/ProtectedRoute.jsx';
 import StudentActivityHome from './components/student/pages/StudentActivityHome .jsx';
 import { useAuthStore } from './store/authStore.js';
 import StudentActivityDetails from './components/student/pages/StudentActivityDetails.jsx';
-import SaMain from './components/SA/pages/SaMain.jsx';
-import SaEvents from './components/SA/pages/SaEvents.jsx';
 import SAHome from './components/SA/pages/SAHome.jsx';
-import SaWorkshops from './components/SA/pages/SaWorkshops.jsx';
-import SaTalks from './components/SA/pages/SaTalks.jsx';
-import SaStudentActivities from './components/SA/pages/SaStudentActivities.jsx';
-import SaCalendar from './components/SA/pages/SaCalendar.jsx';
-import SaProfile from './components/SA/pages/SaProfile.jsx'; // Add this import
+import SaTeams from './components/SA/pages/SaTeams.jsx';
+import SaActivities from './components/SA/pages/SaActivities.jsx';
+import SaFollowers from './components/SA/pages/SaFollowers.jsx';
+import SaReports from './components/SA/pages/SaReports.jsx';
+import SaProfile from './components/SA/pages/SaProfile.jsx';
+import SaDashboard from './components/SA/pages/SaDashboard.jsx';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import {Toaster} from 'react-hot-toast'
 import ForgotPassword from './components/Auth/ForgetPassword.jsx';
@@ -33,19 +32,16 @@ import ActivityDetails from './components/student/pages/ActivityDetails';
 import GoogleCallback from './components/Auth/GoogleCallback';
 import { useEffect } from 'react';
 
-// 🔥 New AuthRoute Component
 function AuthRoute({ children }) {
   const { currentUser } = useAuthStore();
 
   if (currentUser) {
-    // Redirect based on user role
     return <Navigate to={currentUser.role === "StudentActivity" ? "/student-activity" : "/"} replace />;
   }
 
   return children;
 }
 
-// Navigation setup component
 function NavigationSetup() {
   const navigate = useNavigate();
   const { setNavigate } = useAuthStore();
@@ -77,15 +73,15 @@ function App() {
 
   const studentActivityRoutes = {
     path: 'student-activity',
-    element: <SaMain />,
+    element: <ProtectedRoute requiredRole="StudentActivity"><SAHome /></ProtectedRoute>,
     children: [
-      { index: true, element: <ProtectedRoute requiredRole="StudentActivity"><SAHome /></ProtectedRoute> },
-      { path: 'events', element: <ProtectedRoute requiredRole="StudentActivity"><SaEvents /></ProtectedRoute> },
-      { path: 'workshops', element: <ProtectedRoute requiredRole="StudentActivity"><SaWorkshops /></ProtectedRoute> },
-      { path: 'talks', element: <ProtectedRoute requiredRole="StudentActivity"><SaTalks /></ProtectedRoute> },
-      { path: 'student-activities', element: <ProtectedRoute requiredRole="StudentActivity"><SaStudentActivities /></ProtectedRoute> },
-      { path: 'calendar', element: <ProtectedRoute requiredRole="StudentActivity"><SaCalendar /></ProtectedRoute> },
-      { path: 'profile', element: <ProtectedRoute requiredRole="StudentActivity"><SaProfile /></ProtectedRoute> },
+      { index: true, element: <SaDashboard /> },
+      { path: 'dashboard', element: <SaDashboard /> },
+      { path: 'activities', element: <SaActivities /> },
+      { path: 'teams', element: <SaTeams /> },
+      { path: 'followers', element: <SaFollowers /> },
+      { path: 'reports', element: <SaReports /> },
+      { path: 'profile', element: <SaProfile /> },
     ],
   };
 

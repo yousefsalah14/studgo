@@ -112,7 +112,7 @@ function Navbar() {
     };
 
     return (
-        <div className="flex justify-between items-center p-4 bg-gray-900 shadow-md relative z-10">
+        <div className="flex justify-between items-center p-2 bg-gray-900 shadow-md relative z-10 h-16">
             {/* Search Bar */}
             <div className="relative w-full max-w-md">
                 <Search onSearch={handleSearch} placeholder="Search events, clubs, organizations..." />

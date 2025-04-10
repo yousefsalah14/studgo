@@ -20,14 +20,21 @@ function Menu() {
   }, []);
 
   return (
-    <div className={`flex flex-col h-full bg-gray-900 transition-all duration-300 ease-in-out w-full`}>
+    <div className="flex flex-col h-full bg-gray-900 transition-all duration-300 ease-in-out w-full">
+      {/* Mobile overlay */}
+      {isMobile && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        ></div>
+      )}
+
       {/* Logo and title */}
-      <div className="flex items-center justify-center p-6 mt-4">
-        <div className="flex items-center gap-4">
-          <img src={Logo} alt="Logo" className="w-12 h-12 object-cover rounded-lg" />
+      <div className="flex items-center justify-center p-3 mt-2">
+        <div className="flex items-center gap-2">
+          <img src={Logo} alt="Logo" className="w-10 h-10 object-cover rounded-lg" />
           <Link
             to="/student-activity"
-            className="text-2xl font-bold tracking-wide text-white hover:text-blue-400 transition duration-300 ease-in-out transform hover:scale-105"
+            className="text-xl font-bold tracking-wide text-white hover:text-blue-400 transition duration-300 ease-in-out transform hover:scale-105"
           >
             StudGO
           </Link>
@@ -35,20 +42,20 @@ function Menu() {
       </div>
 
       {/* Menu items */}
-      <div className="flex-1 py-6 px-4">
+      <div className="flex-1 py-4 px-2">
         <MenuItems isCollapsed={false} />
       </div>
 
       {/* Divider */}
-      <hr className="w-4/5 mx-auto border-gray-700 my-6" />
+      <hr className="w-4/5 mx-auto border-gray-700 my-4" />
 
       {/* Logout button */}
       <div
-        className="flex items-center gap-4 px-6 py-4 text-xl text-red-400 hover:text-red-300 hover:bg-gray-800 transition-all cursor-pointer group mb-6"
+        className="flex items-center gap-2 px-4 py-2 text-lg text-red-400 hover:text-red-300 hover:bg-gray-800 transition-all cursor-pointer group mb-4"
         onClick={handleLogout}
       >
         <LogOut
-          size={22}
+          size={20}
           className="text-red-400 group-hover:text-red-300 transition-all flex-shrink-0"
         />
         <span className="font-medium">Logout</span>

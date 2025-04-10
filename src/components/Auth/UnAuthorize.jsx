@@ -1,121 +1,152 @@
-import { Shield, Home, LogIn, Lock } from 'lucide-react';
+import { useAuthStore } from "../../store/authStore.js";
+import { motion } from "framer-motion";
 
 function UnAuthorize() {
+  const { currentUser } = useAuthStore();
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white px-4 py-8 overflow-hidden">
-      
-      {/* Background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div 
-              key={i}
-              className="absolute rounded-full bg-red-500"
-              style={{
-                width: `${Math.random() * 10 + 5}px`,
-                height: `${Math.random() * 10 + 5}px`,
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                opacity: Math.random() * 0.5 + 0.1,
-                animation: `pulse ${Math.random() * 10 + 10}s infinite ease-in-out`,
-                animationDelay: `${Math.random() * 5}s`
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      {/* Warning lights effect */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="warning-light-red"></div>
+          <div className="warning-light-blue"></div>
+        </div>
+      </div>
+
+      {/* Security pattern overlay */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="security-pattern"></div>
+      </div>
+
+      <div className="relative h-full flex flex-col items-center justify-center p-4">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-[400px] text-center"
+        >
+          {/* Image container */}
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{
+              type: "spring",
+              stiffness: 260,
+              damping: 20
+            }}
+            className="mb-8"
+          >
+            <motion.div
+              animate={{ 
+                scale: [1, 1.02, 1],
+                rotate: [0, -1, 1, 0]
               }}
-            />
-          ))}
-        </div>
-      </div>
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                repeatType: "reverse",
+                ease: "easeInOut"
+              }}
+              className="relative"
+            >
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+                className="absolute inset-0 blur-xl bg-red-500/20 rounded-full"
+              />
+              <img 
+                className="w-full max-w-[150px] mx-auto"
+                src="./../../../unAuth.png" 
+                alt="Unauthorized Access"
+              />
+            </motion.div>
+          </motion.div>
 
-      {/* Shield Icon */}
-      <div className="text-center mb-6">
-        <div className="relative inline-block">
-          <div className="absolute inset-0 bg-red-500 blur-xl opacity-30 rounded-full animate-pulse"></div>
-          <Shield className="w-24 h-24 text-red-500 relative z-10" />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <Lock className="w-10 h-10 text-white" />
-          </div>
-        </div>
-      </div>
+          {/* Content container */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-6"
+          >
+            {/* 401 number */}
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.02, 1],
+                opacity: [0.8, 1, 0.8]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatType: "reverse"
+              }}
+              className="flex items-center justify-center gap-4"
+            >
+              <div className="w-6 h-6 rounded-full bg-red-500 animate-pulse"></div>
+              <span className="font-bold text-4xl sm:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-red-400 to-red-500">
+                401
+              </span>
+              <div className="w-6 h-6 rounded-full bg-red-500 animate-pulse"></div>
+            </motion.div>
 
-      {/* 401 Number */}
-      <div className="text-center">
-        <div className="relative inline-block">
-          <p className="font-bold text-8xl sm:text-9xl bg-clip-text text-transparent bg-gradient-to-r from-red-400 to-orange-600 drop-shadow-[0_0_25px_rgba(239,68,68,0.5)]">
-            401
-          </p>
-          <div className="absolute -bottom-4 -right-4 animate-bounce-slow opacity-80">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">ERROR</span>
+            {/* Alert text */}
+            <div className="space-y-4">
+              <motion.h1 
+                animate={{
+                  opacity: [0.8, 1, 0.8]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+                className="text-xl sm:text-2xl font-bold text-white tracking-wider uppercase whitespace-nowrap"
+              >
+                SECURITY ALERT: ACCESS DENIED
+              </motion.h1>
+              
+              <div className="p-4 border-2 border-red-500/30 rounded-lg bg-gray-900/50 backdrop-blur-sm">
+                <p className="text-sm sm:text-base text-gray-300 font-medium">
+                  ⚠️ RESTRICTED AREA ⚠️<br/>
+                  Your security clearance is insufficient to access this area.<br/>
+                  Please verify your credentials or contact system administrator.
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+
+            {/* Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                href="/login"
+                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Verify Credentials
+              </motion.a>
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                href={currentUser?.role === "StudentActivity" ? "/student-activity" : "/"}
+                className="px-4 py-2 bg-gray-800 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700 flex items-center justify-center gap-2 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Return to Safe Zone
+              </motion.a>
+            </div>
+          </motion.div>
+        </motion.div>
       </div>
-
-      {/* Main Message */}
-      <div className="text-center flex flex-col items-center gap-y-4 max-w-2xl mt-4">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-300 via-orange-400 to-red-300 animate-gradient">Access Denied</span>
-        </h1>
-        <p className="text-base sm:text-lg text-gray-300 max-w-md mx-auto backdrop-blur-sm bg-gray-800/30 p-4 rounded-lg border border-gray-700/50">
-          Sorry, you don't have permission to access this page. Please log in with the appropriate credentials.
-        </p>
-
-        {/* Security Badge */}
-        <div className="mt-4 bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2 flex items-center gap-2 text-sm text-gray-400">
-          <Shield className="w-4 h-4 text-red-500" />
-          This area requires proper authentication
-        </div>
-
-        {/* Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-6 w-full max-w-md justify-center">
-          <a
-            href="/login"
-            className="flex items-center justify-center gap-3 rounded-lg bg-gradient-to-r from-red-600 to-orange-600 px-8 py-4 text-lg font-medium text-white shadow-xl hover:from-red-700 hover:to-orange-700 transition-all duration-300 hover:shadow-red-500/30 hover:scale-105 w-full sm:w-auto"
-          >
-            <LogIn className="w-6 h-6" />
-            Go to Login
-          </a>
-          <a
-            href="/"
-            className="flex items-center justify-center gap-3 rounded-lg bg-gradient-to-r from-gray-700 to-gray-900 border border-gray-600 px-8 py-4 text-lg font-medium text-white shadow-xl hover:from-gray-600 hover:to-gray-800 transition-all duration-300 hover:border-gray-500 hover:scale-105 w-full sm:w-auto"
-          >
-            <Home className="w-6 h-6" />
-            Return to Home
-          </a>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="absolute bottom-4 text-center text-gray-500 text-sm">
-        © 2024 StudGo - Empowering Student Success
-      </div>
-
-      {/* Animations */}
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.5); opacity: 0.8; }
-        }
-
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 8s ease infinite;
-        }
-
-        .animate-bounce-slow {
-          animation: bounce 3s infinite;
-        }
-
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export const axiosInstance = () => {
         // Removing withCredentials for this API as it's causing CORS issues
         // withCredentials: true,
         headers: token ? { 
-            'Authorization': `Bearer ${token}`,
+            'Authorization': token,
             'Content-Type': 'application/json'
         } : {
             'Content-Type': 'application/json'

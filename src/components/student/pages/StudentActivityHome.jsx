@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { axiosInstance } from '../../../lib/axios';
 import { motion } from 'framer-motion';
@@ -10,11 +10,9 @@ import OrganizationsGrid from '../components/StudentActivity/OrganizationsGrid';
 
 function StudentActivityHome() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredOrganizations, setFilteredOrganizations] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
 
   // Fetch student activities using React Query with filtering and pagination
   const { data: organizationsData = { data: [], count: 0 }, isLoading, error } = useQuery(
@@ -34,25 +32,37 @@ function StudentActivityHome() {
     }
   );
 
-  // Update filtered organizations when organizations data changes
-  useEffect(() => {
-    if (organizationsData?.data) {
-      setFilteredOrganizations(organizationsData.data);
-      setTotalPages(Math.ceil(organizationsData.count / pageSize));
-    }
-  }, [organizationsData, pageSize]);
+  // Calculate total pages
+  const totalPages = useMemo(() => 
+    Math.ceil(organizationsData.count / pageSize),
+    [organizationsData.count, pageSize]
+  );
 
-  // Handle search
-  const handleSearch = (e) => {
+  // Filter organizations based on category
+  const filteredOrganizations = useMemo(() => {
+    if (selectedCategory === "all") {
+      return organizationsData.data;
+    }
+    return organizationsData.data.filter(org => org.category === selectedCategory);
+  }, [organizationsData.data, selectedCategory]);
+
+  // Handle search with debounce
+  const handleSearch = useCallback((e) => {
     const query = e.target.value;
     setSearchQuery(query);
     setPageIndex(0); // Reset to first page when searching
-  };
+  }, []);
+
+  // Handle filter changes
+  const handleFilterChange = useCallback((category) => {
+    setSelectedCategory(category);
+    setPageIndex(0); // Reset to first page when changing category
+  }, []);
 
   // Handle pagination
-  const handlePageChange = (newPage) => {
+  const handlePageChange = useCallback((newPage) => {
     setPageIndex(newPage);
-  };
+  }, []);
 
   if (isLoading) {
     return (
@@ -111,10 +121,9 @@ function StudentActivityHome() {
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               handleSearch={handleSearch}
-              setFilteredOrganizations={setFilteredOrganizations}
               organizations={organizationsData.data || []}
               selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
+              setSelectedCategory={handleFilterChange}
             />
           </div>
         </motion.div>
@@ -139,53 +148,55 @@ function StudentActivityHome() {
           </motion.div>
         )}
 
-        {/* Enhanced Pagination Controls */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="flex justify-center items-center space-x-4 mt-8"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handlePageChange(pageIndex - 1)}
-            disabled={pageIndex === 0}
-            className={`px-6 py-3 rounded-lg flex items-center space-x-2 transition-all duration-300 ${
-              pageIndex === 0
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-blue-500/20'
-            }`}
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="flex justify-center items-center space-x-4 mt-8"
           >
-            <ChevronLeft className="w-5 h-5" />
-            <span>Previous</span>
-          </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handlePageChange(pageIndex - 1)}
+              disabled={pageIndex === 0}
+              className={`px-6 py-3 rounded-lg flex items-center space-x-2 transition-all duration-300 ${
+                pageIndex === 0
+                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-blue-500/20'
+              }`}
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span>Previous</span>
+            </motion.button>
 
-          <div className="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700">
-            <Users className="w-5 h-5 text-blue-400" />
-            <span className="text-gray-300">
-              Page {pageIndex + 1} of {totalPages}
-            </span>
-          </div>
+            <div className="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700">
+              <Users className="w-5 h-5 text-blue-400" />
+              <span className="text-gray-300">
+                Page {pageIndex + 1} of {totalPages}
+              </span>
+            </div>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handlePageChange(pageIndex + 1)}
-            disabled={pageIndex >= totalPages - 1}
-            className={`px-6 py-3 rounded-lg flex items-center space-x-2 transition-all duration-300 ${
-              pageIndex >= totalPages - 1
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-blue-500/20'
-            }`}
-          >
-            <span>Next</span>
-            <ChevronRight className="w-5 h-5" />
-          </motion.button>
-        </motion.div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handlePageChange(pageIndex + 1)}
+              disabled={pageIndex >= totalPages - 1}
+              className={`px-6 py-3 rounded-lg flex items-center space-x-2 transition-all duration-300 ${
+                pageIndex >= totalPages - 1
+                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-blue-500/20'
+              }`}
+            >
+              <span>Next</span>
+              <ChevronRight className="w-5 h-5" />
+            </motion.button>
+          </motion.div>
+        )}
       </div>
     </div>
   );
 }
 
-export default StudentActivityHome;
+export default StudentActivityHome; 

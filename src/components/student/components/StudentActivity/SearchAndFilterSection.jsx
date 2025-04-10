@@ -1,7 +1,20 @@
 import React from 'react';
 import { FiSearch, FiX } from 'react-icons/fi';
 
-const SearchAndFilterSection = ({ searchQuery, setSearchQuery, handleSearch, setFilteredOrganizations, organizations, selectedCategory, setSelectedCategory }) => {
+const SearchAndFilterSection = ({ 
+  searchQuery, 
+  setSearchQuery, 
+  handleSearch, 
+  organizations, 
+  selectedCategory, 
+  setSelectedCategory,
+  onFilterChange 
+}) => {
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    onFilterChange(organizations);
+  };
+
   return (
     <div className="max-w-2xl mx-auto mb-8">
       <div className="relative">
@@ -15,10 +28,7 @@ const SearchAndFilterSection = ({ searchQuery, setSearchQuery, handleSearch, set
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
           {searchQuery ? (
             <button
-              onClick={() => {
-                setSearchQuery("");
-                setFilteredOrganizations(organizations);
-              }}
+              onClick={handleClearSearch}
               className="text-gray-400 hover:text-white"
             >
               <FiX className="w-5 h-5" />
@@ -32,7 +42,13 @@ const SearchAndFilterSection = ({ searchQuery, setSearchQuery, handleSearch, set
         {["CS", "academic", "Engineering", "Business", "social"].map((category) => (
           <button
             key={category}
-            onClick={() => setSelectedCategory(category)}
+            onClick={() => {
+              setSelectedCategory(category);
+              const filtered = category === "all" 
+                ? organizations 
+                : organizations.filter(org => org.category === category);
+              onFilterChange(filtered);
+            }}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               selectedCategory === category
                 ? "bg-blue-500 text-white"

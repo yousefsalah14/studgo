@@ -8,7 +8,7 @@ export default function Layout() {
   return (
     <>
       <NavBar />
-      <div >
+      <div className="mt-52">
         <Outlet /> {/* Render child routes */}
       </div>
       {/* <Footer /> */}

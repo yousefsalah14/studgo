@@ -241,8 +241,13 @@ function Events() {
           upcomingEvents={statesData?.upcomingEvents || 0}
         />
         
-            setSelectedCategory={handleCategoryChange}
-        </div>
+        <SearchAndFilter
+          searchInput={searchInput}
+          setSearchInput={handleSearchInputChange}
+          handleSearchSubmit={handleSearchSubmit}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={handleCategoryChange}
+        />
 
         {/* Pagination - Always visible */}
         <div className="flex justify-center items-center gap-4 mt-8 p-4 bg-gray-800 rounded-lg">
@@ -279,4 +284,4 @@ function Events() {
   );
 }
 
-export default Activities; 
+export default Events; 

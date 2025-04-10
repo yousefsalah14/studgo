@@ -23,35 +23,36 @@ function MenuItems({ isCollapsed }) {
   const location = useLocation();
   
   return (
-    <div className="flex flex-col py-1">
+    <div className="flex flex-col">
       {menuItems.map((item, index) => (
         <div key={index}>
           {!isCollapsed && (
-            <span className="px-4 text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <span className="px-4 py-2 text-xs font-medium text-gray-400 uppercase tracking-wider">
               {item.title}
             </span>
           )}
-          <ul>
+          <ul className="space-y-3">
             {item.items.map((menu, i) => {
-              const isActive = location.pathname === menu.link;
+              const isActive = location.pathname === menu.link ||
+                (menu.link === '/student-activity' && location.pathname === '/student-activity/');
               return (
                 <li key={i}>
                   <Link
                     to={menu.link}
-                    className={`flex items-center px-4 py-3 text-sm rounded-md transition-all duration-200 ${
+                    className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
                       isActive 
                         ? 'bg-blue-600 text-white shadow-md' 
                         : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     }`}
                   >
-                    <span className={`${isActive ? 'text-white ' : 'text-gray-400'} mr-3`}>
+                    <span className={`${isActive ? 'text-white ' : 'text-gray-400'} mr-2`}>
                       {menu.icon}
                     </span>
                     {!isCollapsed && (
-                      <span className="font-medium text-xl">{menu.name}</span>
+                      <span className="font-medium text-lg">{menu.name}</span>
                     )}
                     {isCollapsed && (
-                      <div className="absolute left-16 text-lg bg-white text-gray-900  py-1 px-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      <div className="absolute left-16 text-sm bg-white text-gray-900 py-1 px-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                         {menu.name}
                       </div>
                     )}

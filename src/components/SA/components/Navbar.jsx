@@ -1,260 +1,367 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, User, X, Check, Clock, Settings } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../../store/authStore.js";
-import Search from "./Search.jsx";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuthStore } from "../../../store/authStore";
+import {
+  Search,
+  Bell,
+  User,
+  LogOut,
+  Settings,
+  Menu as MenuIcon,
+  X,
+  ChevronDown,
+  Sun,
+  Moon,
+  Calendar,
+  MessageSquare,
+  HelpCircle
+} from "lucide-react";
 
-function Navbar() {
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [searchResults, setSearchResults] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
-    const { currentUser } = useAuthStore();
-    const dropdownRef = useRef(null);
-    const navigate = useNavigate();
+function Navbar({ isMobile, toggleMobileMenu, isMobileMenuOpen }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      title: "New Event Added",
+      message: "A new event 'Web Development Workshop' has been added.",
+      time: "2 hours ago",
+      read: false,
+    },
+    {
+      id: 2,
+      title: "Event Updated",
+      message: "The 'AI Ethics Talk' event has been rescheduled.",
+      time: "Yesterday",
+      read: true,
+    },
+    {
+      id: 3,
+      title: "New Member",
+      message: "John Doe has joined the student activity group.",
+      time: "3 days ago",
+      read: true,
+    },
+  ]);
+  
+  const searchRef = useRef(null);
+  const notificationsRef = useRef(null);
+  const profileRef = useRef(null);
+  const navigate = useNavigate();
+  const authStore = useAuthStore();
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsDropdownOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
+  // Handle clicks outside of dropdowns
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setIsSearchFocused(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setIsNotificationsOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    }
 
-    // Mock notifications data - in a real app, this would come from an API
-    const [notifications, setNotifications] = useState([
-        { 
-            id: 1, 
-            message: "New event added: Student Leadership Workshop", 
-            time: "5m ago",
-            read: false,
-            type: "event"
-        },
-        { 
-            id: 2, 
-            message: "Your request to join the Debate Club has been approved.", 
-            time: "1h ago",
-            read: false,
-            type: "approval"
-        },
-        { 
-            id: 3, 
-            message: "Reminder: Student Council Meeting at 3 PM today.", 
-            time: "3h ago",
-            read: true,
-            type: "reminder"
-        },
-        { 
-            id: 4, 
-            message: "New announcement: Campus Clean-up Day this Saturday", 
-            time: "1d ago",
-            read: true,
-            type: "announcement"
-        }
-    ]);
-
-    // Handle search functionality
-    const handleSearch = (searchTerm) => {
-        if (!searchTerm.trim()) {
-            setSearchResults([]);
-            setIsSearching(false);
-            return;
-        }
-
-        setIsSearching(true);
-        
-        // Mock search results - in a real app, this would call an API
-        const mockResults = [
-            { id: 1, title: "Student Leadership Workshop", type: "event" },
-            { id: 2, title: "Debate Club", type: "club" },
-            { id: 3, title: "Student Council", type: "organization" },
-            { id: 4, title: "Campus Clean-up Day", type: "event" }
-        ].filter(item => 
-            item.title.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        
-        setSearchResults(mockResults);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
     };
+  }, []);
 
-    // Mark notification as read
-    const markAsRead = (id) => {
-        setNotifications(notifications.map(notif => 
-            notif.id === id ? { ...notif, read: true } : notif
-        ));
-    };
+  // Handle search
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Implement search functionality
+      console.log("Searching for:", searchQuery);
+      // Reset search
+      setSearchQuery("");
+      setIsSearchFocused(false);
+    }
+  };
 
-    // Mark all notifications as read
-    const markAllAsRead = () => {
-        setNotifications(notifications.map(notif => ({ ...notif, read: true })));
-    };
+  // Handle logout
+  const handleLogout = () => {
+    console.log("Logging out...");
+    console.log("Auth Store:", authStore);
+    authStore.handleLogout();
+    navigate("/login");
+  };
 
-    // Get unread notifications count
-    const unreadCount = notifications.filter(notif => !notif.read).length;
-
-    // Get notification icon based on type
-    const getNotificationIcon = (type) => {
-        switch(type) {
-            case "event":
-                return <Clock className="h-4 w-4 text-blue-400" />;
-            case "approval":
-                return <Check className="h-4 w-4 text-green-400" />;
-            case "reminder":
-                return <Bell className="h-4 w-4 text-yellow-400" />;
-            case "announcement":
-                return <Settings className="h-4 w-4 text-purple-400" />;
-            default:
-                return <Bell className="h-4 w-4 text-gray-400" />;
-        }
-    };
-
-    return (
-        <div className="flex justify-between items-center p-4 bg-gray-900 shadow-md relative z-10">
-            {/* Search Bar */}
-            <div className="relative w-full max-w-md">
-                <Search onSearch={handleSearch} placeholder="Search events, clubs, organizations..." />
-                
-                {/* Search Results Dropdown */}
-                {isSearching && searchResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-gray-800 rounded-lg shadow-lg overflow-hidden z-20">
-                        {searchResults.map(result => (
-                            <div 
-                                key={result.id} 
-                                className="p-3 hover:bg-gray-700 cursor-pointer transition-colors flex items-center gap-3"
-                                onClick={() => {
-                                    // Navigate to the appropriate page based on result type
-                                    if (result.type === "event") {
-                                        navigate(`/student-activity/events/${result.id}`);
-                                    } else if (result.type === "club") {
-                                        navigate(`/student-activity/clubs/${result.id}`);
-                                    } else {
-                                        navigate(`/student-activity/organizations/${result.id}`);
-                                    }
-                                    setIsSearching(false);
-                                }}
-                            >
-                                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-                                    {getNotificationIcon(result.type)}
-                                </div>
-                                <div>
-                                    <div className="text-white font-medium">{result.title}</div>
-                                    <div className="text-gray-400 text-xs capitalize">{result.type}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Notification & User Profile */}
-            <div className="flex items-center gap-4">
-                {/* Notification Dropdown */}
-                <div className="relative" ref={dropdownRef}>
-                    {/* Bell Icon */}
-                    <div 
-                        className="relative cursor-pointer"
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    >
-                        <div className="rounded-full w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 transition-all duration-300 transform hover:scale-105">
-                            <Bell size={20} className="text-white" />
-                            {unreadCount > 0 && (
-                                <div className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-red-600 text-white text-xs font-bold rounded-full">
-                                    {unreadCount}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Dropdown List */}
-                    {isDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-80 bg-gray-800 shadow-lg rounded-lg overflow-hidden z-20">
-                            <div className="p-3 border-b border-gray-700 flex justify-between items-center">
-                                <div className="text-white font-semibold">Notifications</div>
-                                {unreadCount > 0 && (
-                                    <button 
-                                        onClick={markAllAsRead}
-                                        className="text-blue-400 text-xs hover:text-blue-300 transition-colors"
-                                    >
-                                        Mark all as read
-                                    </button>
-                                )}
-                            </div>
-                            <div className="max-h-80 overflow-y-auto">
-                                {notifications.length > 0 ? (
-                                    notifications.map((notif) => (
-                                        <div 
-                                            key={notif.id} 
-                                            className={`p-3 text-sm hover:bg-gray-700 transition flex items-start gap-3 ${!notif.read ? 'bg-gray-700/50' : ''}`}
-                                        >
-                                            <div className="mt-1">
-                                                {getNotificationIcon(notif.type)}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="text-white">{notif.message}</div>
-                                                <div className="text-gray-400 text-xs mt-1">{notif.time}</div>
-                                            </div>
-                                            {!notif.read && (
-                                                <button 
-                                                    onClick={() => markAsRead(notif.id)}
-                                                    className="text-gray-400 hover:text-white transition-colors"
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-4 text-center text-gray-400">No notifications</div>
-                                )}
-                            </div>
-                            <div className="p-2 border-t border-gray-700 text-center">
-                                <Link 
-                                    to="/student-activity/notifications" 
-                                    className="text-blue-400 text-sm hover:text-blue-300 transition-colors"
-                                >
-                                    View all notifications
-                                </Link>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* User Profile Section */}
-                <Link 
-                    to="/student-activity/profile" 
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-700 transition-all duration-300 transform hover:scale-105"
-                >
-                    {/* Profile Picture */}
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 flex items-center justify-center">
-                        {currentUser?.profileImage ? (
-                            <img 
-                                src={currentUser.profileImage}  
-                                alt="Profile" 
-                                className="w-full h-full object-cover rounded-full"
-                            />
-                        ) : (
-                            <User size={24} className="text-white" />
-                        )}
-                    </div>
-                    
-                    {/* User Info */}
-                    <div className="flex flex-col">
-                        <span className="text-white text-sm font-medium">
-                            {currentUser?.UserName || "Guest"}
-                        </span>
-                        <span className="text-gray-400 text-xs">
-                            {Array.isArray(currentUser?.role) 
-                                ? currentUser.role.join(", ") 
-                                : currentUser?.role || "User"}
-                        </span>
-                    </div>
-                </Link>
-            </div>
-        </div>
+  // Mark notification as read
+  const markAsRead = (id) => {
+    setNotifications(
+      notifications.map((notification) =>
+        notification.id === id ? { ...notification, read: true } : notification
+      )
     );
+  };
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    // In a real app, you would implement actual dark mode toggling here
+  };
+
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+  return (
+    <nav className="fixed top-0 right-0 left-0 md:left-auto z-40 h-16 md:h-20 backdrop-blur-md bg-gray-900/95 border-b border-gray-800/80">
+      <div className="h-full max-w-screen-2xl mx-auto px-4 flex items-center justify-between">
+        {/* Left Section: Mobile Menu Toggle + Search */}
+        <div className="flex items-center">
+          {/* Mobile Menu Toggle */}
+          {isMobile && (
+            <button
+              onClick={toggleMobileMenu}
+              className="mr-3 text-gray-400 hover:text-white p-2 rounded-md hover:bg-gray-800/70 transition-colors"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <MenuIcon size={24} />}
+            </button>
+          )}
+
+          {/* Search */}
+          <div
+            ref={searchRef}
+            className={`relative ${isMobile ? "w-full max-w-[180px] sm:max-w-xs" : "w-64 lg:w-80"}`}
+          >
+            <form onSubmit={handleSearch} className="relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                className={`w-full bg-gray-800/70 text-white px-4 py-2 pl-10 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                  isSearchFocused
+                    ? "focus:ring-blue-500 focus:bg-gray-700/90"
+                    : "focus:ring-gray-700"
+                }`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+              />
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              />
+            </form>
+          </div>
+        </div>
+
+        {/* Center Section: Quick Links (Hidden on Mobile) */}
+        {!isMobile && (
+          <div className="hidden md:flex items-center space-x-1">
+            <Link 
+              to="/student-activity/calendar" 
+              className="flex items-center space-x-1 px-3 py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
+            >
+              <Calendar size={18} />
+              <span className="text-sm font-medium">Calendar</span>
+            </Link>
+            <Link 
+              to="/student-activity/messages" 
+              className="flex items-center space-x-1 px-3 py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
+            >
+              <MessageSquare size={18} />
+              <span className="text-sm font-medium">Messages</span>
+            </Link>
+            <Link 
+              to="/student-activity/help" 
+              className="flex items-center space-x-1 px-3 py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
+            >
+              <HelpCircle size={18} />
+              <span className="text-sm font-medium">Help</span>
+            </Link>
+          </div>
+        )}
+
+        {/* Right Section: Actions */}
+        <div className="flex items-center space-x-1 md:space-x-3">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
+            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          {/* Notifications */}
+          <div ref={notificationsRef} className="relative">
+            <button
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              className="relative p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {isNotificationsOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 border border-gray-700/80">
+                <div className="p-3 border-b border-gray-700/80 flex justify-between items-center">
+                  <h3 className="text-white font-medium">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span className="text-xs text-gray-400">
+                      {unreadCount} unread
+                    </span>
+                  )}
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        onClick={() => markAsRead(notification.id)}
+                        className={`p-3 border-b border-gray-700/80 cursor-pointer hover:bg-gray-700/70 transition-colors ${
+                          !notification.read ? "bg-gray-700/50" : ""
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-sm font-medium text-white">
+                            {notification.title}
+                          </h4>
+                          <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                            {notification.time}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-300 mt-1">
+                          {notification.message}
+                        </p>
+                        {!notification.read && (
+                          <div className="mt-2 flex justify-end">
+                            <span className="text-xs text-blue-400 hover:text-blue-300">
+                              Mark as read
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-400">
+                      No notifications
+                    </div>
+                  )}
+                </div>
+                <div className="p-2 border-t border-gray-700/80">
+                  <button 
+                    onClick={() => {
+                      navigate('/student-activity/notifications');
+                      setIsNotificationsOpen(false);
+                    }}
+                    className="w-full text-center text-sm text-blue-400 hover:text-blue-300 p-2 rounded-md hover:bg-gray-700/70 transition-colors"
+                  >
+                    View all notifications
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Profile */}
+          <div ref={profileRef} className="relative">
+            <button
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center space-x-2 p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
+              aria-label="Profile menu"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium overflow-hidden ring-2 ring-gray-700/50">
+                {authStore.currentUser?.photoURL ? (
+                  <img
+                    src={authStore.currentUser.photoURL}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User size={18} />
+                )}
+              </div>
+              {!isMobile && (
+                <>
+                  <span className="text-sm font-medium text-white max-w-[100px] truncate">
+                    {authStore.currentUser?.displayName || "User"}
+                  </span>
+                  <ChevronDown size={16} />
+                </>
+              )}
+            </button>
+
+            {/* Profile Dropdown */}
+            {isProfileOpen && (
+              <div className="absolute right-0 mt-2 w-60 bg-gray-800/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 border border-gray-700/80">
+                <div className="p-4 border-b border-gray-700/80">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium overflow-hidden">
+                      {authStore.currentUser?.photoURL ? (
+                        <img
+                          src={authStore.currentUser.photoURL}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User size={20} />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">
+                        {authStore.currentUser?.displayName || "User"}
+                      </p>
+                      <p className="text-gray-400 text-sm truncate">
+                        {authStore.currentUser?.email || "user@example.com"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      navigate("/student-activity/profile");
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-2.5 text-left text-gray-300 hover:text-white hover:bg-gray-700/70 transition-colors"
+                  >
+                    <User size={18} />
+                    <span>Your Profile</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      navigate("/student-activity/settings");
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-2.5 text-left text-gray-300 hover:text-white hover:bg-gray-700/70 transition-colors"
+                  >
+                    <Settings size={18} />
+                    <span>Settings</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log("Logout button clicked");
+                      console.log("Auth Store:", authStore);
+                      setIsProfileOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-2.5 text-left text-red-400 hover:text-red-300 hover:bg-gray-700/70 transition-colors border-t border-gray-700/80 mt-1"
+                  >
+                    <LogOut size={18} />
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
 }
 
 export default Navbar;

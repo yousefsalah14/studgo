@@ -5,9 +5,7 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Upload } from "lucide-react";
 import { toast } from "react-hot-toast";
-import ProfileForm from "./ProfileForm";
-import Achievements from "./Achievements";
-import Events from "./Events";
+import ProfileForm from "../components/ProfileForm";
 import { Formik } from "formik";
 
 // Create axios instance with default config
@@ -40,8 +38,6 @@ const validationSchema = Yup.object().shape({
 export default function SaProfile() {
   const { currentUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [achievements, setAchievements] = useState([]);
-  const [events, setEvents] = useState([]);
   const [tagInput, setTagInput] = useState("");
   const [newAchievement, setNewAchievement] = useState({
     title: "",
@@ -102,10 +98,6 @@ export default function SaProfile() {
             memberCount: profileData.memberCount || 0,
             logoUrl: profileData.logoUrl || ""
           });
-          
-          // Set achievements and events
-          setAchievements(profileData.achievements || []);
-          setEvents(profileData.upcomingEvents || []);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -160,37 +152,6 @@ export default function SaProfile() {
     }
   };
 
-  // Add achievement
-  const addAchievement = async (achievementData) => {
-    if (!achievementData.title || !achievementData.date || !achievementData.description) {
-      toast.error("Please fill all achievement fields");
-      return;
-    }
-
-    try {
-      const response = await api.post("/student-activity/add-achievement", achievementData);
-      if (response.data) {
-        setAchievements([...achievements, response.data]);
-        toast.success("Achievement added successfully!");
-      }
-    } catch (error) {
-      console.error("Add achievement error:", error);
-      toast.error("Failed to add achievement");
-    }
-  };
-
-  // Delete achievement
-  const deleteAchievement = async (achievementId) => {
-    try {
-      await api.delete(`/student-activity/achievement/${achievementId}`);
-      setAchievements(achievements.filter(a => a.id !== achievementId));
-      toast.success("Achievement deleted successfully!");
-    } catch (error) {
-      console.error("Delete achievement error:", error);
-      toast.error("Failed to delete achievement");
-    }
-  };
-
   // Enhanced error handling for form submission
   const handleSubmit = async (values) => {
     setIsLoading(true);
@@ -214,7 +175,7 @@ export default function SaProfile() {
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-b-2xl shadow-lg">
         <div className="container mx-auto">
           <h1 className="text-3xl font-bold">Student Activity Profile</h1>
-          <p className="text-gray-200">Manage your activity details, achievements, and upcoming events.</p>
+          <p className="text-gray-200">Manage your activity details and information.</p>
           <div className="flex items-center gap-2 mt-2">
             <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Active</span>
             <span className="text-sm text-gray-200">Last updated: {new Date().toLocaleDateString()}</span>
@@ -225,18 +186,12 @@ export default function SaProfile() {
       {/* Main Content */}
       <div className="p-6">
         <div className="container mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8">
             {/* Profile Form */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="space-y-8">
               <Formik initialValues={formik.initialValues} validationSchema={formik.validationSchema} onSubmit={formik.handleSubmit}>
                 <ProfileForm isLoading={isLoading} api={api} toast={toast} />
               </Formik>
-            </div>
-
-            {/* Achievements and Events */}
-            <div className="space-y-8">
-              <Achievements achievements={achievements} onAdd={addAchievement} onDelete={deleteAchievement} />
-              <Events events={events} />
             </div>
           </div>
         </div>
@@ -244,7 +199,7 @@ export default function SaProfile() {
       {/* Footer */}
       <div className="bg-gray-800 p-6 mt-8">
         <div className="container mx-auto text-center text-gray-400 text-sm">
-          <p>© {new Date().getFullYear()} StudGO - Student Activity Management</p>
+          <p> {new Date().getFullYear()} StudGO - Student Activity Management</p>
           <p className="mt-2">Enhance your student activity experience with our platform</p>
         </div>
       </div>

@@ -5,19 +5,17 @@ import { Outlet } from "react-router-dom";
 import { Loader } from "lucide-react";
 
 function SAHome() {
-
-
     return (
-        <div className="h-screen flex">
+        <div className="h-screen flex overflow-hidden">
             {/* Left Sidebar (Fixed) */}
-            <div className="w-[14%] md:w-[20%] lg:w-[16%] xl:w-[14%] sm:w-[10%] bg-gray-900 text-white p-3 fixed top-0 left-0 h-full overflow-y-auto">
+            <div className="w-[240px] bg-gray-900 text-white p-2 h-full">
                 <Menu />
             </div>
 
             {/* Right Section (Scrollable) */}
-            <div className="w-full ml-[14%] md:ml-[20%] lg:ml-[16%] xl:ml-[14%] sm:ml-[10%]  h-screen overflow-y-auto bg-gray-800">
-                <Navbar />
-                <div >
+            <div className="flex-1 flex flex-col  h-screen overflow-y-auto bg-gray-800">
+                    <Navbar />
+                <div>
                     <Outlet />
                 </div>
             </div>

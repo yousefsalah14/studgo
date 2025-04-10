@@ -20,7 +20,7 @@ function Menu() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 transition-all duration-300 ease-in-out w-full">
+    <div className={`flex flex-col h-full bg-gray-900 transition-all duration-300 ease-in-out w-60 ${isMobile ? 'fixed top-0 left-0 z-50 h-screen' : 'relative'}`}>
       {/* Mobile overlay */}
       {isMobile && (
         <div 

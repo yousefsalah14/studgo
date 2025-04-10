@@ -6,12 +6,13 @@ export default function Layout() {
 //   const { userData } = useContext(UserContext); // Access user data from context (optional)
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <NavBar />
-      <div className="mt-52">
+      <div className="navbar-spacer h-14 md:h-16"></div> {/* Reduced spacer height */}
+      <main className="flex-grow">
         <Outlet /> {/* Render child routes */}
-      </div>
+      </main>
       {/* <Footer /> */}
-    </>
+    </div>
   );
 }

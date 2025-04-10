@@ -81,7 +81,7 @@ const StudentActivityDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white pt-20">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       <div className="container mx-auto max-w-7xl px-4 sm:px-8">
         {/* Back Button at top left */}
         <motion.div 

@@ -333,7 +333,7 @@ function ActivityDetails() {
               )}
             </div>
             <h1 className="text-4xl font-bold text-white mb-2">{activity.title}</h1>
-            
+            <p className="text-gray-300 text-lg max-w-3xl">{activity.description}</p>
           </div>
         </div>
       </div>
@@ -435,7 +435,12 @@ function ActivityDetails() {
                                 )}
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-gray-400">{content.contentType}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-gray-400">{content.contentType}</p>
+                                  <span className="text-xs px-2 py-0.5 bg-gray-600 text-gray-300 rounded-full">
+                                    {formatDate(content.startDate)}
+                                  </span>
+                                </div>
                                 <p className="text-base text-white font-medium">{content.title}</p>
                               </div>
                             </div>
@@ -444,7 +449,7 @@ function ActivityDetails() {
                               onClick={() => openContentModal(content)}
                               className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm font-medium bg-blue-500/10 px-3 py-1.5 rounded-lg"
                             >
-                              Details
+                              View Details
                               <ChevronRight className="w-4 h-4" />
                             </button>
                           </div>
@@ -711,4 +716,4 @@ function ActivityDetails() {
   );
 }
 
-export default ActivityDetails;
+export default ActivityDetails; 

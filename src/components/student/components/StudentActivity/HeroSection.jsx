@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { Search, Calendar, Users, BookOpen, TrendingUp, Compass } from 'lucide-react';
 
 const HeroSection = () => {
   return (
@@ -19,18 +21,66 @@ const HeroSection = () => {
           <p className="text-2xl text-gray-300 max-w-3xl mx-auto mb-8">
             Discover, Connect, and Thrive in Student Organizations
           </p>
-          <div className="flex justify-center gap-4">
-            <button className="px-8 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105">
-              Join Now
-            </button>
-            <button className="px-8 py-3 bg-gray-700/50 hover:bg-gray-700 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105">
-              Learn More
-            </button>
-          </div>
+          
+          {/* Creative interactive element replacing the buttons */}
+          <motion.div 
+            className="flex justify-center gap-3 py-3 px-5"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <motion.div 
+              className="relative group cursor-pointer"
+              whileHover={{ scale: 1.05, y: -5 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-300"></div>
+              <div className="relative flex flex-col items-center px-6 py-4 bg-gray-800 rounded-lg">
+                <Search className="w-10 h-10 text-pink-400 mb-1" />
+                <span className="text-white font-medium">Explore</span>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              className="relative group cursor-pointer"
+              whileHover={{ scale: 1.05, y: -5 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-300"></div>
+              <div className="relative flex flex-col items-center px-6 py-4 bg-gray-800 rounded-lg">
+                <Calendar className="w-10 h-10 text-blue-400 mb-1" />
+                <span className="text-white font-medium">Events</span>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              className="relative group cursor-pointer"
+              whileHover={{ scale: 1.05, y: -5 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-300"></div>
+              <div className="relative flex flex-col items-center px-6 py-4 bg-gray-800 rounded-lg">
+                <Users className="w-10 h-10 text-green-400 mb-1" />
+                <span className="text-white font-medium">Connect</span>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              className="relative group cursor-pointer"
+              whileHover={{ scale: 1.05, y: -5 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-300"></div>
+              <div className="relative flex flex-col items-center px-6 py-4 bg-gray-800 rounded-lg">
+                <TrendingUp className="w-10 h-10 text-amber-400 mb-1" />
+                <span className="text-white font-medium">Grow</span>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </div>
   );
 };
 
-export default HeroSection; 
+export default HeroSection;

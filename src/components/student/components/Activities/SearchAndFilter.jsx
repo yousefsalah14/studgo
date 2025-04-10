@@ -6,82 +6,56 @@ function SearchAndFilter({
   setSearchQuery, 
   selectedCategory, 
   setSelectedCategory, 
-  selectedActivityType, 
-  setSelectedActivityType, 
+  selectedActivityType,
+  setSelectedActivityType,
   onSearch 
 }) {
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      onSearch();
-    }
+  const handleSearch = (e) => {
+    e.preventDefault();
+    onSearch();
   };
 
-  // Updated categories to match the correct options
-  const categories = ['All', 'Technical', 'NonTechnical'];
-  const activityTypes = ['All', 'Workshop', 'Event'];
-
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
-      <h2 className="text-xl font-bold mb-4">Find Activities</h2>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3">
-        {/* Search input */}
-        <div className="md:col-span-5">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search by activity name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
-        </div>
-        
-        {/* Category dropdown */}
-        <div className="md:col-span-3">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        {/* Activity Type dropdown */}
-        <div className="md:col-span-3">
-          <select
-            value={selectedActivityType}
-            onChange={(e) => setSelectedActivityType(e.target.value)}
-            className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-            {activityTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        {/* Search button */}
-        <div className="md:col-span-1">
-          <button
-            onClick={onSearch}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 flex items-center justify-center"
-          >
-            <Search className="h-5 w-5 md:mr-1" />
-            <span className="hidden md:inline">Search</span>
-          </button>
-        </div>
+    <form onSubmit={handleSearch} className="mb-8 flex flex-col md:flex-row gap-4">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <input
+          type="text"
+          placeholder="Search activities..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+        />
       </div>
-    </div>
+      <div className="flex gap-2">
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+        >
+          <option value="All">All Categories</option>
+          <option value="Technical">Technical</option>
+          <option value="NonTechnical">Non-Technical</option>
+        </select>
+        <select
+          value={selectedActivityType}
+          onChange={(e) => setSelectedActivityType(e.target.value)}
+          className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+        >
+          <option value="All">All Types</option>
+          <option value="Event">Event</option>
+          <option value="Workshop">Workshop</option>
+        </select>
+        <button 
+          type="submit"
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center gap-2"
+        >
+          <Search className="w-4 h-4" />
+          Search
+        </button>
+      </div>
+    </form>
   );
 }
 
-export default SearchAndFilter;
+export default SearchAndFilter; 

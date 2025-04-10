@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, RouterProvider, useNavigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import './App.css'
 
 import Login from './components/Auth/Login.jsx';
@@ -24,14 +24,11 @@ import {Toaster} from 'react-hot-toast'
 import ForgotPassword from './components/Auth/ForgetPassword.jsx';
 import ResetCode from './components/Auth/RestCode.jsx';
 import Profile from './components/student/pages/profile.jsx';
-import Activities from './components/student/pages/Activities.jsx';
+import Events from './components/student/pages/Events.jsx';
 import Workshops from './components/student/pages/Workshops.jsx';
 import Calendar from './components/student/pages/Calendar.jsx';
 import Internships from './components/student/pages/Internships.jsx';
 import WorkshopDetails from './components/student/pages/WorkshopDetails';
-import ActivityDetails from './components/student/pages/ActivityDetails';
-import GoogleCallback from './components/Auth/GoogleCallback';
-import { useEffect } from 'react';
 
 // 🔥 New AuthRoute Component
 function AuthRoute({ children }) {
@@ -45,18 +42,6 @@ function AuthRoute({ children }) {
   return children;
 }
 
-// Navigation setup component
-function NavigationSetup() {
-  const navigate = useNavigate();
-  const { setNavigate } = useAuthStore();
-
-  useEffect(() => {
-    setNavigate(navigate);
-  }, [navigate, setNavigate]);
-
-  return null;
-}
-
 function App() {
   const mainRoutes = {
     path: '',
@@ -66,26 +51,11 @@ function App() {
       { path: 'student-activities', element: <ProtectedRoute requiredRole="Student"><StudentActivityHome /></ProtectedRoute> },
       { path: 'profile', element: <ProtectedRoute requiredRole="Student"><Profile /></ProtectedRoute> },
       { path: 'calendar', element: <ProtectedRoute requiredRole="Student"><Calendar /></ProtectedRoute> },
-      { path: 'activities', element: <ProtectedRoute requiredRole="Student"><Activities /></ProtectedRoute> },
+      { path: 'events', element: <ProtectedRoute requiredRole="Student"><Events /></ProtectedRoute> },
       { path: 'workshops', element: <ProtectedRoute requiredRole="Student"><Workshops /></ProtectedRoute> },
       { path: 'interns', element: <ProtectedRoute requiredRole="Student"><Internships /></ProtectedRoute> },
       { path: 'studentactivity/:id', element: <ProtectedRoute requiredRole="Student"><StudentActivityDetails /></ProtectedRoute> },
       { path: 'workshops/:id', element: <WorkshopDetails /> },
-      { path: 'activities/:id', element: <ActivityDetails /> },
-    ],
-  };
-
-  const studentActivityRoutes = {
-    path: 'student-activity',
-    element: <SaMain />,
-    children: [
-      { index: true, element: <ProtectedRoute requiredRole="StudentActivity"><SAHome /></ProtectedRoute> },
-      { path: 'events', element: <ProtectedRoute requiredRole="StudentActivity"><SaEvents /></ProtectedRoute> },
-      { path: 'workshops', element: <ProtectedRoute requiredRole="StudentActivity"><SaWorkshops /></ProtectedRoute> },
-      { path: 'talks', element: <ProtectedRoute requiredRole="StudentActivity"><SaTalks /></ProtectedRoute> },
-      { path: 'student-activities', element: <ProtectedRoute requiredRole="StudentActivity"><SaStudentActivities /></ProtectedRoute> },
-      { path: 'calendar', element: <ProtectedRoute requiredRole="StudentActivity"><SaCalendar /></ProtectedRoute> },
-      { path: 'profile', element: <ProtectedRoute requiredRole="StudentActivity"><SaProfile /></ProtectedRoute> },
     ],
   };
 
@@ -96,33 +66,30 @@ function App() {
     { path: 'login', element: <AuthRoute><Login /></AuthRoute> },
     { path: '', element: <AuthRoute><Login /></AuthRoute> },
     { path: 'forget-password', element: <AuthRoute><ForgotPassword /></AuthRoute> },
-    { path: 'reset-code', element: <AuthRoute><ResetCode /></AuthRoute> },
-    { path: 'auth/google/callback', element: <GoogleCallback /> }
+    { path: 'reset-code', element: <AuthRoute><ResetCode /></AuthRoute> }
   ];
 
-  const routes = createBrowserRouter([
-    {
-      path: '/',
-      element: (
-        <>
-          <NavigationSetup />
-          <Outlet />
-        </>
-      ),
-      children: [
-        mainRoutes,
-        studentActivityRoutes,
-        ...authRoutes,
-      ],
-    },
-  ]);
+  const studentActivityRoutes = {
+    path: 'student-activity',
+    element: <ProtectedRoute requiredRole="StudentActivity"><SAHome /></ProtectedRoute>,
+    children: [
+      { index: true, element: <ProtectedRoute requiredRole="StudentActivity"><SaMain /></ProtectedRoute> },
+      { path: 'events', element: <ProtectedRoute requiredRole="StudentActivity"><SaEvents /></ProtectedRoute> },
+      { path: 'workshops', element: <ProtectedRoute requiredRole="StudentActivity"><SaWorkshops /></ProtectedRoute> },
+      { path: 'talks', element: <ProtectedRoute requiredRole="StudentActivity"><SaTalks /></ProtectedRoute> },
+      { path: 'calendar', element: <ProtectedRoute requiredRole="StudentActivity"><SaCalendar /></ProtectedRoute> },
+      { path: 'student-activities', element: <ProtectedRoute requiredRole="StudentActivity"><SaStudentActivities /></ProtectedRoute> },
+      { path: 'profile', element: <ProtectedRoute requiredRole="StudentActivity"><SaProfile /></ProtectedRoute> },
+    ],
+  };
 
-  const queryClient = new QueryClient();
-
+  const routes = createBrowserRouter([mainRoutes, studentActivityRoutes, ...authRoutes]);
+  const reactQueryConfig = new QueryClient({});
+  
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={reactQueryConfig}>
       <RouterProvider router={routes} />
-      <Toaster position="top-center" />
+      <Toaster toastOptions={{ duration: 8000 }} />
     </QueryClientProvider>
   );
 }

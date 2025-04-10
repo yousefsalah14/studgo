@@ -206,11 +206,11 @@ const NetworkBackground = () => {
 const Home = () => {
   const [stats, setStats] = useState({
     activeStudents: 0,
-    upcomingActivities: 0,
+    upcomingEvents: 0,
+    availableWorkshops: 0,
     internshipOpportunities: 0,
-    totalActivities: 0,
+    totalEvents: 0,
     appliedEvents: 0,
-    appliedWorkshops: 0,
     activeOrganizations: 0
   });
   const [showStats, setShowStats] = useState(false);
@@ -232,11 +232,11 @@ const Home = () => {
 
   const statsCards = [
     { label: 'Active Students', value: stats.activeStudents, icon: Users },
-    { label: 'Upcoming Activities', value: stats.upcomingActivities, icon: Calendar },
+    { label: 'Upcoming Events', value: stats.upcomingEvents, icon: Calendar },
+    { label: 'Available Workshops', value: stats.availableWorkshops, icon: BookOpen },
     { label: 'Internship Opportunities', value: stats.internshipOpportunities, icon: Briefcase },
-    { label: 'Total Activities', value: stats.totalActivities, icon: Calendar },
+    { label: 'Total Events', value: stats.totalEvents, icon: Calendar },
     { label: 'Applied Events', value: stats.appliedEvents, icon: CheckCircle2 },
-    { label: 'Applied Workshops', value: stats.appliedWorkshops, icon: BookOpen },
     { label: 'Active Organizations', value: stats.activeOrganizations, icon: Building }
   ];
 

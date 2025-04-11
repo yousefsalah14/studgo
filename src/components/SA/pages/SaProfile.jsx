@@ -5,7 +5,7 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Upload } from "lucide-react";
 import { toast } from "react-hot-toast";
-import ProfileForm from "../components/ProfileForm";
+import ProfileForm from "./ProfileForm";
 import { Formik } from "formik";
 
 // Create axios instance with default config
@@ -190,7 +190,7 @@ export default function SaProfile() {
             {/* Profile Form */}
             <div className="space-y-8">
               <Formik initialValues={formik.initialValues} validationSchema={formik.validationSchema} onSubmit={formik.handleSubmit}>
-                <ProfileForm isLoading={isLoading} api={api} toast={toast} />
+                <ProfileForm formik={formik} isLoading={isLoading} />
               </Formik>
             </div>
           </div>

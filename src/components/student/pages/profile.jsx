@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -118,81 +118,52 @@ export default function Profile() {
   const [isProfileSaved, setIsProfileSaved] = useState(false);
   const [uploadingCV, setUploadingCV] = useState(false);
   const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeletePictureModal, setShowDeletePictureModal] = useState(false);
+  
+  // Add refs for file inputs
+  const cvInputRef = useRef(null);
+  const pictureInputRef = useRef(null);
+  const hasFetchedProfile = useRef(false);
 
-  const formik = useFormik({
-    initialValues: {
-      firstName: "",
-      lastName: "",
-      address: "",
-      longitude: null,
-      latitude: null,
-      fieldOfStudy: "",
-      contactEmail: currentUser?.email || "",
-      contactPhoneNumber: "",
-      birthDate: "",
-      university: "",
-      faculty: ""
-    },
-    validationSchema,
-    onSubmit: async (values) => {
-      setIsLoading(true);
-      try {
-        const api = axiosInstance();
-        const response = await api.post("/student/update-profile", values);
-        if (response.data.isSuccess) {
-          setIsProfileSaved(true); // Enable upload buttons only after successful profile save
-          toast.success(response.data.message || "Profile updated successfully!");
-          // After successful update, fetch the profile data
-          fetchProfileData();
-        } else {
-          toast.error(response.data.message || "Failed to update profile");
-        }
-      } catch (error) {
-        console.error("Profile update error:", error);
-        const errorMessage = error.response?.data?.message || error.response?.data?.errors?.join(", ") || "Failed to update profile";
-        toast.error(errorMessage);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-  });
-
-  const handleLocationSelect = (address, lat, lng) => {
-    formik.setFieldValue('address', address);
-    formik.setFieldValue('latitude', lat);
-    formik.setFieldValue('longitude', lng);
+  const initialFormValues = {
+    firstName: "",
+    lastName: "",
+    address: "",
+    longitude: null,
+    latitude: null,
+    fieldOfStudy: "",
+    contactEmail: currentUser?.email || "",
+    contactPhoneNumber: "",
+    birthDate: "",
+    university: "",
+    faculty: ""
   };
 
-  // Function to fetch profile data
-  const fetchProfileData = async () => {
-    try {
-      const api = axiosInstance();
-      const response = await api.get("/student/profile");
+  // Create formik instance first
+  const formik = useFormik({
+    initialValues: initialFormValues,
+    validationSchema,
+    enableReinitialize: true,
+    onSubmit: async (values) => {
+      setIsLoading(true);
+      const controller = new AbortController();
       
-      if (response.data.isSuccess) {
-        const data = response.data.data;
-        setProfileData(data);
+      try {
+        const api = axiosInstance();
+        const response = await api.post("/student/update-profile", values, {
+          signal: controller.signal,
+          timeout: 20000 // 20 second timeout
+        });
         
-        // Check if profile is completed by verifying all required fields exist
-        const isProfileComplete = data && 
-          data.firstName && 
-          data.lastName && 
-          data.birthDate && 
-          data.contactPhoneNumber && 
-          data.contactEmail && 
-          data.fieldOfStudy && 
-          data.university && 
-          data.faculty && 
-          data.address;
-        
-        // If profile is complete, enable the upload buttons
-        setIsProfileSaved(isProfileComplete);
-        
-        // If there is profile data, show the profile card
-        if (data) {
+        if (response.data.isSuccess) {
+          const data = response.data.data;
+          setProfileData(data);
+          setIsProfileSaved(true);
           setShowProfileCard(true);
+          toast.success(response.data.message || "Profile updated successfully!");
           
-          // Populate form with existing data
+          // Update form values with the response data
           formik.setValues({
             firstName: data.firstName || "",
             lastName: data.lastName || "",
@@ -206,17 +177,143 @@ export default function Profile() {
             longitude: data.longitude || null,
             latitude: data.latitude || null,
           });
+        } else {
+          toast.error(response.data.message || "Failed to update profile");
+        }
+      } catch (error) {
+        // Check for specific network errors that might cause runtime.lastError
+        if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+          console.warn('Update request was aborted:', error);
+          toast.error("Request timed out. Please try again.");
+        } else {
+          console.error("Profile update error:", error);
+          const errorMessage = error.response?.data?.message || error.response?.data?.errors?.join(", ") || "Failed to update profile";
+          toast.error(errorMessage);
+        }
+      } finally {
+        controller.abort(); // Ensure controller is aborted
+        setIsLoading(false);
+      }
+    },
+  });
+
+  // Then fetch profile in useEffect
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const fetchProfile = async () => {
+      // Check for token
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        if (isMounted) toast.error("Please login to access your profile");
+        return;
+      }
+
+      // Reset state at the beginning
+      if (isMounted) {
+        setShowProfileCard(false);
+        setIsProfileSaved(false);
+      }
+
+      try {
+        console.log("Fetching profile data...");
+        const api = axiosInstance();
+        const response = await api.get("/student/profile", {
+          signal: controller.signal,
+          timeout: 15000,
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        });
+        
+        // Only update state if component is still mounted
+        if (!isMounted) return;
+        
+        if (response.data.isSuccess) {
+          console.log("Profile data fetched successfully:", response.data.data);
+          const data = response.data.data;
+          setProfileData(data);
+          
+          // Check if profile is completed
+          const isProfileComplete = data && 
+            data.firstName && 
+            data.lastName && 
+            data.birthDate && 
+            data.contactPhoneNumber && 
+            data.contactEmail && 
+            data.fieldOfStudy && 
+            data.university && 
+            data.faculty && 
+            data.address;
+          
+          setIsProfileSaved(isProfileComplete);
+          
+          if (data) {
+            setShowProfileCard(true);
+            formik.setValues({
+              firstName: data.firstName || "",
+              lastName: data.lastName || "",
+              birthDate: data.birthDate ? new Date(data.birthDate).toISOString().split("T")[0] : "",
+              contactPhoneNumber: data.contactPhoneNumber || "",
+              contactEmail: data.contactEmail || currentUser?.email || "",
+              fieldOfStudy: data.fieldOfStudy || "",
+              university: data.university || "",
+              faculty: data.faculty || "",
+              address: data.address || "",
+              longitude: data.longitude || null,
+              latitude: data.latitude || null,
+            });
+          }
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        
+        console.error("Profile fetch error:", error);
+        
+        // Check for specific network errors that might cause runtime.lastError
+        if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+          console.warn('Network request was aborted:', error);
+          // Don't show error toast for abort errors as they might be intentional
+        } else if (error.response?.status === 400 && error.response.data.errors?.[0] === "Student not found.") {
+          // This is expected for new users - show the form
+          setShowProfileCard(false);
+          setIsProfileSaved(false);
+          toast("Please complete your profile information");
+        } else if (error.response?.status === 401) {
+          toast.error("Your session has expired. Please login again.");
+        } else {
+          toast.error(error.response?.data?.message || "Failed to fetch profile");
         }
       }
-    } catch (error) {
-      console.error("Error fetching profile data:", error);
-      const errorMsg = error.response?.data?.message || "Failed to fetch profile data";
-      toast.error(errorMsg);
+    };
+
+    // Call the fetch function
+    fetchProfile();
+
+    // Cleanup function to prevent memory leaks and state updates after unmount
+    return () => {
+      isMounted = false;
+      controller.abort(); // Abort any in-flight requests
+    };
+  }, [currentUser?.email]); // Add dependency on email to refetch if user changes
+
+  const handleLocationSelect = (address, lat, lng) => {
+    // Only update if the formik object is still valid (component is mounted)
+    if (formik && formik.setFieldValue) {
+      formik.setFieldValue('address', address);
+      formik.setFieldValue('latitude', lat);
+      formik.setFieldValue('longitude', lng);
     }
   };
 
   const handleCVUpload = async (event) => {
-    if (!isProfileSaved) return; // Don't proceed if profile isn't saved
+    if (!isProfileSaved) {
+      toast.error("You should first complete your profile before uploading a CV");
+      return;
+    }
 
     const file = event.target.files[0];
     if (!file) return;
@@ -237,87 +334,54 @@ export default function Profile() {
 
     setUploadingCV(true);
     const formData = new FormData();
-    // Try a different field name - in many APIs, the field is expected to be named based on the purpose
     formData.append('CV', file);
     
-    console.log("CV Upload - File info:", {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
-
-    // Get the token for authentication
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      toast.error("You must be logged in to upload a CV");
-      setUploadingCV(false);
-      return;
-    }
-    
     try {
-      // Use direct axios instead of axiosInstance to bypass any potential issues
-      const baseURL = "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api";
-      const url = `${baseURL}/student/upload-cv`;
+      const api = axiosInstance();
+      const controller = new AbortController(); // Create abort controller
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      console.log(`Attempting CV upload to: ${url}`);
-      
-      // Try with 'Bearer ' prefix for the token
-      const response = await axios.post(url, formData, {
+      const response = await api.post("/student/upload-cv", formData, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Content-Type': 'multipart/form-data'
+        },
+        signal: controller.signal
       });
       
-      console.log("CV upload response:", response.data);
+      clearTimeout(timeoutId); // Clear timeout if request completes
       
       if (response.data.isSuccess) {
         toast.success(response.data.message || "CV uploaded successfully");
-        // Get CV URL from the cvUrl field in the response
-        const cvUrl = response.data.data.cvUrl;
-        console.log("CV uploaded successfully:", cvUrl);
-        fetchProfileData();
+        // Update local state instead of making another API call
+        setProfileData(prevData => ({
+          ...prevData,
+          cvUrl: response.data.data
+        }));
       } else {
         toast.error(response.data.message || "Failed to upload CV");
-        console.error("CV upload failed with isSuccess=false:", response.data);
       }
     } catch (error) {
-      console.error("Error uploading CV:", error);
-      
-      if (error.response) {
-        console.error("Error response status:", error.response.status);
-        console.error("Error response data:", error.response.data);
-        
-        // Show specific errors from the backend if available
-        if (error.response.data && error.response.data.errors && error.response.data.errors.length > 0) {
-          console.error("Specific errors:", error.response.data.errors);
-          toast.error(`Upload failed: ${error.response.data.errors.join(", ")}`);
-        } else if (error.response.status === 401) {
-          toast.error("Authentication error. Please log in again.");
-        } else if (error.response.status === 413) {
-          toast.error("File too large. Please upload a smaller file.");
-        } else if (error.response.status === 400) {
-          const errorMsg = error.response.data?.message || "Invalid request";
-          toast.error(errorMsg || "Bad request when uploading CV");
-        } else {
-          const errorMsg = error.response.data?.message || "Failed to upload CV";
-          toast.error(errorMsg);
-        }
-      } else if (error.request) {
-        console.error("Error request (no response received):", error.request);
-        toast.error("No response from server. Please check your internet connection.");
+      if (error.name === 'AbortError') {
+        toast.error("Upload timed out. Please try again.");
       } else {
-        console.error("Error message:", error.message);
-        toast.error("Upload error: " + error.message);
+        console.error("Error uploading CV:", error);
+        const errorMsg = error.response?.data?.message || "Failed to upload CV";
+        toast.error(errorMsg);
       }
     } finally {
       setUploadingCV(false);
-      // Reset the file input so the same file can be selected again if needed
-      document.getElementById('cv-upload').value = '';
+      // Reset the file input
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
   const handleProfilePictureUpload = async (event) => {
-    if (!isProfileSaved) return; // Don't proceed if profile isn't saved
+    if (!isProfileSaved) {
+      toast.error("You should first complete your profile before uploading a profile picture");
+      return;
+    }
 
     const file = event.target.files[0];
     if (!file) return;
@@ -337,225 +401,312 @@ export default function Profile() {
 
     setUploadingPicture(true);
     const formData = new FormData();
-    // Use a field name that matches the expected parameter on the server
-    formData.append('ProfilePicture', file);
+    formData.append('picture', file);
     
-    console.log("Profile Picture Upload - File info:", {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
-    
-    // Get the token for authentication
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      toast.error("You must be logged in to upload a profile picture");
-      setUploadingPicture(false);
-      return;
-    }
-
     try {
-      // Use direct axios instead of axiosInstance to bypass any potential issues
-      const baseURL = "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api";
-      const url = `${baseURL}/student/upload-profile-picture`;
+      const api = axiosInstance();
+      const controller = new AbortController(); // Create abort controller
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      console.log(`Attempting profile picture upload to: ${url}`);
-      
-      // Use Bearer prefix for token
-      const response = await axios.post(url, formData, {
+      const response = await api.post("/student/upload-picture", formData, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Content-Type': 'multipart/form-data'
+        },
+        signal: controller.signal
       });
       
-      console.log("Profile picture upload response:", response.data);
+      clearTimeout(timeoutId); // Clear timeout if request completes
       
       if (response.data.isSuccess) {
         toast.success(response.data.message || "Profile picture uploaded successfully");
-        // Get picture URL from the pictureUrl field in the response
-        const pictureUrl = response.data.data.pictureUrl;
-        console.log("Profile picture uploaded successfully:", pictureUrl);
-        fetchProfileData();
+        // Update local state instead of making another API call
+        setProfileData(prevData => ({
+          ...prevData,
+          pictureUrl: response.data.data
+        }));
       } else {
         toast.error(response.data.message || "Failed to upload profile picture");
-        console.error("Profile picture upload failed:", response.data);
       }
     } catch (error) {
-      console.error("Error uploading profile picture:", error);
-      
-      if (error.response) {
-        console.error("Error response status:", error.response.status);
-        console.error("Error response data:", error.response.data);
-        
-        // Show specific errors from the backend if available
-        if (error.response.data && error.response.data.errors && error.response.data.errors.length > 0) {
-          console.error("Specific errors:", error.response.data.errors);
-          toast.error(`Upload failed: ${error.response.data.errors.join(", ")}`);
-        } else if (error.response.status === 401) {
-          toast.error("Authentication error. Please log in again.");
-        } else if (error.response.status === 413) {
-          toast.error("File too large. Please upload a smaller file.");
-        } else if (error.response.status === 400) {
-          const errorMsg = error.response.data?.message || "Invalid request";
-          toast.error(errorMsg || "Bad request when uploading profile picture");
-        } else {
-          const errorMsg = error.response.data?.message || "Failed to upload profile picture";
-          toast.error(errorMsg);
-        }
-      } else if (error.request) {
-        console.error("Error request (no response received):", error.request);
-        toast.error("No response from server. Please check your internet connection.");
+      if (error.name === 'AbortError') {
+        toast.error("Upload timed out. Please try again.");
       } else {
-        console.error("Error message:", error.message);
-        toast.error("Upload error: " + error.message);
+        console.error("Error uploading profile picture:", error);
+        const errorMsg = error.response?.data?.message || "Failed to upload profile picture";
+        toast.error(errorMsg);
       }
     } finally {
       setUploadingPicture(false);
-      // Reset the file input
-      document.getElementById('profile-picture-upload').value = '';
+      // Reset the file input safely
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
   const handleDeleteCV = async () => {
-    if (!isProfileSaved) return; // Don't proceed if profile isn't saved
-    
-    if (!window.confirm("Are you sure you want to delete your CV?")) {
-      return; // User canceled the deletion
+    if (!isProfileSaved) {
+      toast.error("You should first complete your profile before managing your CV");
+      return;
     }
     
+    setShowDeleteModal(true);
+  };
+
+  const deleteCV = async () => {
     setIsLoading(true);
+    setShowDeleteModal(false);
     
     try {
       const api = axiosInstance();
-      const response = await api.delete("/student/delete-cv");
+      const controller = new AbortController(); // Create abort controller
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
-      console.log("Delete CV response:", response.data);
+      const response = await api.delete("/student/delete-cv", {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId); // Clear timeout if request completes
       
       if (response.data.isSuccess) {
         toast.success(response.data.message || "CV deleted successfully");
-        // Refresh profile data to update CV status
-        fetchProfileData();
+        // Update local state instead of making another API call
+        setProfileData(prevData => ({
+          ...prevData,
+          cvUrl: null
+        }));
       } else {
         toast.error(response.data.message || "Failed to delete CV");
       }
     } catch (error) {
-      console.error("Error deleting CV:", error);
-      
-      if (error.response) {
-        console.error("Error response status:", error.response.status);
-        console.error("Error response data:", error.response.data);
-        const errorMsg = error.response.data?.message || "Failed to delete CV";
-        toast.error(errorMsg);
-      } else if (error.request) {
-        toast.error("No response from server. Please check your internet connection.");
+      if (error.name === 'AbortError') {
+        toast.error("Request timed out. Please try again.");
       } else {
-        toast.error("Delete error: " + error.message);
+        console.error("Error deleting CV:", error);
+        const errorMsg = error.response?.data?.message || "Failed to delete CV";
+        toast.error(errorMsg);
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check for token and fetch profile data on component mount
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      toast.error("Please login to access your profile");
-      // You can add navigation to login page here
+  const handleDeletePicture = async () => {
+    if (!isProfileSaved) {
+      toast.error("You should first complete your profile before managing your profile picture");
       return;
     }
     
-    // Fetch profile data on component mount
-    fetchProfileData();
-  }, []);
+    setShowDeletePictureModal(true);
+  };
 
-  // Effect to set isProfileSaved based on profileData
-  useEffect(() => {
-    if (profileData) {
-      // Do not automatically set isProfileSaved here
-      // Users must explicitly press the Save Profile button
-      // setIsProfileSaved(true);
+  const deletePicture = async () => {
+    setIsLoading(true);
+    setShowDeletePictureModal(false);
+    
+    try {
+      const api = axiosInstance();
+      const controller = new AbortController(); // Create abort controller
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      const response = await api.delete("/student/delete-picture", {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId); // Clear timeout if request completes
+      
+      if (response.data.isSuccess) {
+        toast.success(response.data.message || "Profile picture deleted successfully");
+        // Update local state instead of making another API call
+        setProfileData(prevData => ({
+          ...prevData,
+          pictureUrl: null
+        }));
+      } else {
+        toast.error(response.data.message || "Failed to delete profile picture");
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        toast.error("Request timed out. Please try again.");
+      } else {
+        console.error("Error deleting profile picture:", error);
+        const errorMsg = error.response?.data?.message || "Failed to delete profile picture";
+        toast.error(errorMsg);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  }, [profileData]);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Hero Section with Profile Image */}
-      <div className="relative h-screen w-full">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: 'url("https://images.unsplash.com/photo-1523050854058-8df90110c9fHxlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80")',
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-900/90 via-gray-900/70 to-gray-800"></div>
+      {/* Delete Picture Confirmation Modal */}
+      {showDeletePictureModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-white mb-3">Delete Profile Picture</h3>
+            <p className="text-gray-300 mb-6">Are you sure you want to delete your profile picture? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeletePictureModal(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deletePicture}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete"
+                )}
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-white mb-3">Delete CV</h3>
+            <p className="text-gray-300 mb-6">Are you sure you want to delete your CV? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteCV}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hero Section with Profile Image */}
+      <div className="relative h-screen w-full overflow-hidden">
+        {/* Creative background with animated particles */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 animate-gradient"></div>
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNGM2LjYyNyAwIDEyLTUuMzczIDEyLTEyUzQyLjYyNyAxMCAzNiAxMCAyNCAxNS4zNzMgMjQgMjJzNS4zNzMgMTIgMTIgMTJ6bTAgMGM2LjYyNyAwIDEyLTUuMzczIDEyLTEyUzQyLjYyNyAxMCAzNiAxMCAyNCAxNS4zNzMgMjQgMjJzNS4zNzMgMTIgMTIgMTJ6IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9Ii4wNSIvPjwvZz48L3N2Zz4=')] opacity-20"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/70 to-gray-800/50"></div>
+        </div>
+
+        {/* Animated floating elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl animate-float-delay"></div>
+          <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-indigo-500/20 rounded-full blur-2xl animate-float-reverse"></div>
+        </div>
+
         <div className="relative h-full flex items-center justify-center">
           <div className="text-center">
-            <div className="relative inline-block mb-6">
-              <div className="w-40 h-40 rounded-full border-4 border-blue-500 overflow-hidden bg-gray-800">
+            <div className="relative inline-block mb-6 group">
+              {/* Animated background for profile picture */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+              
+              <div className="relative w-40 h-40 rounded-full border-4 border-blue-500 overflow-hidden bg-gray-800 transform transition duration-300 group-hover:scale-105">
                 <img
-                  src={profileData?.pictureUrl ? profileData.pictureUrl : "https://via.placeholder.com/150"}
+                  src={profileData?.pictureUrl ? profileData.pictureUrl : "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff"}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
+                
+                {/* Action buttons positioned in the center */}
+                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {profileData?.pictureUrl && (
+                    <button 
+                      className="p-2 rounded-full bg-red-500 hover:bg-red-600 transition-all duration-300 transform hover:scale-110 hover:rotate-12 shadow-lg hover:shadow-red-500/50 group/delete"
+                      onClick={handleDeletePicture}
+                      disabled={!isProfileSaved || uploadingPicture}
+                      title="Delete profile picture"
+                    >
+                      <XCircle className="w-5 h-5 text-white group-hover/delete:animate-pulse" />
+                    </button>
+                  )}
+                  <button 
+                    className={`p-2 rounded-full transition-all duration-300 transform hover:scale-110 hover:-rotate-12 shadow-lg ${
+                      isProfileSaved 
+                        ? 'bg-blue-500 hover:bg-blue-600 hover:shadow-blue-500/50 group/upload' 
+                        : 'bg-gray-500 cursor-not-allowed'
+                    }`}
+                    onClick={() => isProfileSaved && pictureInputRef.current?.click()}
+                    disabled={!isProfileSaved || uploadingPicture}
+                    title={isProfileSaved ? "Upload profile picture" : "Complete your profile first"}
+                  >
+                    {uploadingPicture ? (
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-white group-hover/upload:animate-bounce" />
+                    )}
+                  </button>
+                </div>
               </div>
-              <button 
-                className={`absolute bottom-0 right-0 p-2 rounded-full transition-colors ${
-                  isProfileSaved 
-                    ? 'bg-blue-500 hover:bg-blue-600 cursor-pointer' 
-                    : 'bg-gray-500 cursor-not-allowed'
-                }`}
-                onClick={() => isProfileSaved && document.getElementById('profile-picture-upload').click()}
-                disabled={!isProfileSaved || uploadingPicture}
-                title={isProfileSaved ? "Upload profile picture" : "Save profile first to upload picture"}
-              >
-                {uploadingPicture ? (
-                  <Loader2 className="w-5 h-5 text-white animate-spin" />
-                ) : (
-                  <Upload className="w-5 h-5 text-white" />
-                )}
-              </button>
+              
               <input
-                id="profile-picture-upload"
+                ref={pictureInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
                 onChange={handleProfilePictureUpload}
               />
             </div>
-            <h1 className="text-4xl font-bold mb-2">
+            
+            <h1 className="text-4xl font-bold mb-2 animate-fade-in bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
               {profileData?.firstName || formik.values.firstName || "Your"} {profileData?.lastName || formik.values.lastName || "Profile"}
             </h1>
-            <p className="text-xl text-gray-300 mb-8">
+            <p className="text-xl text-gray-300 mb-8 animate-fade-in-delay">
               {profileData?.university || formik.values.university || "University"} • {profileData?.fieldOfStudy || formik.values.fieldOfStudy || "Field of Study"}
             </p>
+            
+            {/* Enhanced CV upload button */}
             <div className="flex justify-center gap-4">
               <button
                 type="button"
-                onClick={() => isProfileSaved && document.getElementById("cv-upload").click()}
-                className={`px-6 py-3 text-white rounded-lg transition-colors flex items-center gap-2 ${
+                onClick={() => isProfileSaved && cvInputRef.current?.click()}
+                className={`px-6 py-3 text-white rounded-lg transition-all duration-300 transform hover:scale-105 ${
                   isProfileSaved 
-                    ? 'bg-blue-500 hover:bg-blue-600 cursor-pointer' 
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-blue-500/50 group/cv' 
                     : 'bg-gray-500 cursor-not-allowed'
                 }`}
                 disabled={!isProfileSaved || uploadingCV}
-                title={isProfileSaved ? "Upload your CV" : "Save profile first to upload CV"}
+                title={isProfileSaved ? "Upload your CV" : "Complete your profile first"}
               >
                 {uploadingCV ? (
-                  <>
+                  <div className="flex items-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Uploading...
-                  </>
+                    <span>Uploading...</span>
+                  </div>
                 ) : (
-                  <>
+                  <div className="flex items-center gap-2 group-hover/cv:animate-pulse">
                     <FileText className="w-5 h-5" />
-                    {profileData?.cvUrl ? "Replace CV" : "Upload CV"}
-                  </>
+                    <span>{profileData?.cvUrl ? "Replace CV" : "Upload CV"}</span>
+                  </div>
                 )}
               </button>
               <input
-                id="cv-upload"
+                ref={cvInputRef}
                 type="file"
                 accept=".pdf,.doc,.docx,.png,.jpeg"
                 className="hidden"
@@ -566,355 +717,555 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* Add custom animations to the CSS */}
+      <style>{`
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 15s ease infinite;
+        }
+        @keyframes float {
+          0%, 100% { transform: translate(0, 0) rotate(0deg); }
+          25% { transform: translate(10px, -10px) rotate(5deg); }
+          50% { transform: translate(0, -20px) rotate(0deg); }
+          75% { transform: translate(-10px, -10px) rotate(-5deg); }
+        }
+        .animate-float {
+          animation: float 8s ease-in-out infinite;
+        }
+        .animate-float-delay {
+          animation: float 8s ease-in-out 2s infinite;
+        }
+        .animate-float-reverse {
+          animation: float 8s ease-in-out 4s infinite reverse;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+        .animate-fade-in-delay {
+          animation: fadeIn 0.5s ease-out 0.2s forwards;
+          opacity: 0;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        .animate-bounce {
+          animation: bounce 1s infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 gap-8">
           {/* Profile Card - Shown after fetch or save */}
           {showProfileCard && profileData && (
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-8 transform transition-all duration-300 ease-in-out">
-            <h2 className="text-2xl font-semibold mb-6 text-blue-400">Student Profile Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-300">Personal Information</h3>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-start">
-                      <User className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">Full Name</p>
-                        <p className="text-white">{profileData.firstName} {profileData.lastName}</p>
+              <h2 className="text-2xl font-semibold mb-6 text-blue-400">Student Profile Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-300">Personal Information</h3>
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-start">
+                        <User className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">Full Name</p>
+                          <p className="text-white">{profileData.firstName} {profileData.lastName}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <MapPin className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">Address</p>
+                          <p className="text-white">{profileData.address}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <Calendar className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">Birth Date</p>
+                          <p className="text-white">{new Date(profileData.birthDate).toLocaleDateString()}</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-start">
-                      <MapPin className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">Address</p>
-                        <p className="text-white">{profileData.address}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-300">Contact Information</h3>
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-start">
+                        <Mail className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">Email</p>
+                          <p className="text-white">{profileData.contactEmail}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-start">
-                      <Calendar className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">Birth Date</p>
-                        <p className="text-white">{new Date(profileData.birthDate).toLocaleDateString()}</p>
+                      <div className="flex items-start">
+                        <Phone className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">Phone</p>
+                          <p className="text-white">{profileData.contactPhoneNumber}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                <div>
-                  <h3 className="text-lg font-medium text-gray-300">Contact Information</h3>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-start">
-                      <Mail className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">Email</p>
-                        <p className="text-white">{profileData.contactEmail}</p>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-300">Academic Information</h3>
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-start">
+                        <Building2 className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">University</p>
+                          <p className="text-white">{profileData.university}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <GraduationCap className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">Faculty</p>
+                          <p className="text-white">{profileData.faculty}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <GraduationCap className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">Field of Study</p>
+                          <p className="text-white">{profileData.fieldOfStudy}</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-start">
-                      <Phone className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">Phone</p>
-                        <p className="text-white">{profileData.contactPhoneNumber}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-300">Documents</h3>
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-start">
+                        <FileText className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-400">CV Status</p>
+                          <p className="text-white">{profileData.cvUrl ? "Uploaded" : "Not uploaded"}</p>
+                        </div>
                       </div>
+                      {profileData && profileData.cvUrl && (
+                        <div className="mt-2 flex space-x-4">
+                          <a 
+                            href={profileData.cvUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-blue-400 hover:text-blue-300"
+                          >
+                            <FileText className="w-4 h-4 mr-1" />
+                            View CV
+                          </a>
+                          <button
+                            onClick={handleDeleteCV}
+                            className="inline-flex items-center text-red-400 hover:text-red-300"
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Delete CV
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-300">Academic Information</h3>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-start">
-                      <Building2 className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">University</p>
-                        <p className="text-white">{profileData.university}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <GraduationCap className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">Faculty</p>
-                        <p className="text-white">{profileData.faculty}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <GraduationCap className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">Field of Study</p>
-                        <p className="text-white">{profileData.fieldOfStudy}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-medium text-gray-300">Documents</h3>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-start">
-                      <FileText className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-400">CV Status</p>
-                        <p className="text-white">{profileData.cvUrl ? "Uploaded" : "Not uploaded"}</p>
-                      </div>
-                    </div>
-                    {profileData && profileData.cvUrl && (
-                      <div className="mt-2 flex space-x-4">
-                        <a 
-                          href={profileData.cvUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-blue-400 hover:text-blue-300"
-                        >
-                          <FileText className="w-4 h-4 mr-1" />
-                          View CV
-                        </a>
-                        <button
-                          onClick={handleDeleteCV}
-                          className="inline-flex items-center text-red-400 hover:text-red-300"
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Delete CV
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowProfileCard(false);
+                    setIsProfileSaved(false); // Disable upload buttons when editing profile
+                  }}
+                  className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                >
+                  Edit Profile
+                </button>
               </div>
             </div>
-            
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => {
-                  setShowProfileCard(false);
-                  setIsProfileSaved(false); // Disable upload buttons when editing profile
-                }}
-                className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
-              >
-                Edit Profile
-              </button>
-            </div>
-          </div>
           )}
 
           {/* Profile Form - Hidden when card is shown */}
           {!showProfileCard && (
-            <div>
-              <form onSubmit={formik.handleSubmit} className="space-y-8">
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
-                  <h2 className="text-2xl font-semibold mb-6">Personal Information</h2>
+            <div className="relative z-10">
+              {/* Reduce background blob opacity */}
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full filter blur-3xl animate-blob"></div>
+              <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-purple-500/5 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
+              <div className="absolute top-1/2 -left-20 w-60 h-60 bg-pink-500/5 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>
 
-                  <div className="space-y-6">
-                    {/* Personal Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          First Name
-                        </label>
-                        <input
-                          type="text"
-                          name="firstName"
-                          value={formik.values.firstName}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                          placeholder="Enter your first name"
-                          className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            formik.touched.firstName && formik.errors.firstName ? "border-red-500" : ""
-                          }`}
-                        />
-                        {formik.touched.firstName && formik.errors.firstName && (
-                          <p className="mt-1 text-sm text-red-400">{formik.errors.firstName}</p>
-                        )}
-                      </div>
+              <form onSubmit={formik.handleSubmit} className="space-y-10 relative z-10">
+                <div className="backdrop-blur-sm bg-gray-900/70 rounded-3xl p-8 shadow-lg border border-gray-800/50 overflow-hidden relative">
+                  {/* Remove decorative elements that cause excessive glow */}
+                  
+                  <div className="relative">
+                    <h2 className="text-3xl font-bold mb-8 text-center">
+                      <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 tracking-tight">
+                        Complete Your Profile
+                      </span>
+                    </h2>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Last Name
-                        </label>
-                        <input
-                          type="text"
-                          name="lastName"
-                          value={formik.values.lastName}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                          placeholder="Enter your last name"
-                          className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            formik.touched.lastName && formik.errors.lastName ? "border-red-500" : ""
-                          }`}
-                        />
-                        {formik.touched.lastName && formik.errors.lastName && (
-                          <p className="mt-1 text-sm text-red-400">{formik.errors.lastName}</p>
-                        )}
-                      </div>
+                    <div className="space-y-12">
+                      {/* Personal Information */}
+                      <div className="form-section">
+                        <h3 className="text-xl font-bold mb-6 flex items-center group">
+                          <span className="inline-block mr-4 bg-gradient-to-r from-blue-500 to-purple-500 p-3 rounded-xl shadow-md">
+                            <User className="w-6 h-6 text-white" />
+                          </span>
+                          <span className="text-white tracking-tight">
+                            Personal Information
+                          </span>
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          {/* Name group - Full row on mobile, side by side on desktop */}
+                          <div className="form-group group">
+                            <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-blue-400 transition-colors duration-300 ml-1">
+                              First Name
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <User className="h-5 w-5 text-gray-400 group-focus-within:text-blue-400 transition-colors duration-300" />
+                                </div>
+                                <input
+                                  type="text"
+                                  name="firstName"
+                                  value={formik.values.firstName}
+                                  onChange={formik.handleChange}
+                                  onBlur={formik.handleBlur}
+                                  placeholder="Enter your first name"
+                                  className={`w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border ${
+                                    formik.touched.firstName && formik.errors.firstName 
+                                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" 
+                                      : "border-gray-700 focus:border-blue-500 focus:ring-blue-500/30"
+                                  } focus:outline-none focus:ring-2 transition-all duration-300 text-white shadow-sm`}
+                                />
+                              </div>
+                            </div>
+                            {formik.touched.firstName && formik.errors.firstName && (
+                              <p className="mt-2 text-sm text-red-400 flex items-center gap-1 animate-fade-in">
+                                <XCircle className="w-4 h-4" /> {formik.errors.firstName}
+                              </p>
+                            )}
+                          </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Birth Date
-                        </label>
-                        <input
-                          type="date"
-                          name="birthDate"
-                          value={formik.values.birthDate}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                          className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            formik.touched.birthDate && formik.errors.birthDate ? "border-red-500" : ""
-                          }`}
-                        />
-                        {formik.touched.birthDate && formik.errors.birthDate && (
-                          <p className="mt-1 text-sm text-red-400">{formik.errors.birthDate}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Location
-                        </label>
-                        <LocationPicker onLocationSelect={handleLocationSelect} />
-                        <input
-                          type="text"
-                          name="address"
-                          value={formik.values.address}
-                          onChange={formik.handleChange}
-                          placeholder="Selected location address"
-                          className="w-full mt-2 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          readOnly
-                        />
-                      </div>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div>
-                      <h3 className="text-xl font-medium text-gray-200 mb-4">Contact Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            name="contactEmail"
-                            placeholder="Enter your email"
-                            value={formik.values.contactEmail}
-                            onChange={formik.handleChange}
-                            className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                              formik.touched.contactEmail && formik.errors.contactEmail ? "border-red-500" : ""
-                            }`}
-                          />
-                          {formik.touched.contactEmail && formik.errors.contactEmail && (
-                            <p className="mt-1 text-sm text-red-400">{formik.errors.contactEmail}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Phone Number
-                          </label>
-                          <input
-                            type="tel"
-                            name="contactPhoneNumber"
-                            value={formik.values.contactPhoneNumber}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                            placeholder="Enter your phone number"
-                            className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                              formik.touched.contactPhoneNumber && formik.errors.contactPhoneNumber ? "border-red-500" : ""
-                            }`}
-                          />
-                          {formik.touched.contactPhoneNumber && formik.errors.contactPhoneNumber && (
-                            <p className="mt-1 text-sm text-red-400">{formik.errors.contactPhoneNumber}</p>
-                          )}
+                          <div className="form-group group">
+                            <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-blue-400 transition-colors duration-300 ml-1">
+                              Last Name
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <User className="h-5 w-5 text-gray-400 group-focus-within:text-blue-400 transition-colors duration-300" />
+                                </div>
+                                <input
+                                  type="text"
+                                  name="lastName"
+                                  value={formik.values.lastName}
+                                  onChange={formik.handleChange}
+                                  onBlur={formik.handleBlur}
+                                  placeholder="Enter your last name"
+                                  className={`w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border ${
+                                    formik.touched.lastName && formik.errors.lastName 
+                                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" 
+                                      : "border-gray-700 focus:border-blue-500 focus:ring-blue-500/30"
+                                  } focus:outline-none focus:ring-2 transition-all duration-300 text-white shadow-sm`}
+                                />
+                              </div>
+                            </div>
+                            {formik.touched.lastName && formik.errors.lastName && (
+                              <p className="mt-2 text-sm text-red-400 flex items-center gap-1 animate-fade-in">
+                                <XCircle className="w-4 h-4" /> {formik.errors.lastName}
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* Birth Date - Full row on mobile, half on desktop */}
+                          <div className="form-group group">
+                            <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-blue-400 transition-colors duration-300 ml-1">
+                              Birth Date
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <Calendar className="h-5 w-5 text-gray-400 group-focus-within:text-blue-400 transition-colors duration-300" />
+                                </div>
+                                <input
+                                  type="date"
+                                  name="birthDate"
+                                  value={formik.values.birthDate}
+                                  onChange={formik.handleChange}
+                                  onBlur={formik.handleBlur}
+                                  className={`w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border ${
+                                    formik.touched.birthDate && formik.errors.birthDate 
+                                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" 
+                                      : "border-gray-700 focus:border-blue-500 focus:ring-blue-500/30"
+                                  } focus:outline-none focus:ring-2 transition-all duration-300 text-white shadow-sm`}
+                                />
+                              </div>
+                            </div>
+                            {formik.touched.birthDate && formik.errors.birthDate && (
+                              <p className="mt-2 text-sm text-red-400 flex items-center gap-1 animate-fade-in">
+                                <XCircle className="w-4 h-4" /> {formik.errors.birthDate}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                      
+                      {/* Contact Information */}
+                      <div className="form-section">
+                        <h3 className="text-xl font-bold mb-6 flex items-center group">
+                          <span className="inline-block mr-4 bg-gradient-to-r from-green-500 to-teal-500 p-3 rounded-xl shadow-md">
+                            <Mail className="w-6 h-6 text-white" />
+                          </span>
+                          <span className="text-white tracking-tight">
+                            Contact Information
+                          </span>
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div className="form-group group">
+                            <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-teal-400 transition-colors duration-300 ml-1">
+                              Email
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-teal-400 transition-colors duration-300" />
+                                </div>
+                                <input
+                                  type="email"
+                                  name="contactEmail"
+                                  placeholder="Enter your email"
+                                  value={formik.values.contactEmail}
+                                  onChange={formik.handleChange}
+                                  className={`w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border ${
+                                    formik.touched.contactEmail && formik.errors.contactEmail 
+                                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" 
+                                      : "border-gray-700 focus:border-teal-500 focus:ring-teal-500/30"
+                                  } focus:outline-none focus:ring-2 transition-all duration-300 text-white shadow-sm`}
+                                />
+                              </div>
+                            </div>
+                            {formik.touched.contactEmail && formik.errors.contactEmail && (
+                              <p className="mt-2 text-sm text-red-400 flex items-center gap-1 animate-fade-in">
+                                <XCircle className="w-4 h-4" /> {formik.errors.contactEmail}
+                              </p>
+                            )}
+                          </div>
 
-                    {/* Academic Information */}
-                    <div>
-                      <h3 className="text-xl font-medium text-gray-200 mb-4">Academic Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            University
-                          </label>
-                          <input
-                            type="text"
-                            name="university"
-                            value={formik.values.university}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                            placeholder="Enter your university"
-                            className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                              formik.touched.university && formik.errors.university ? "border-red-500" : ""
-                            }`}
-                          />
-                          {formik.touched.university && formik.errors.university && (
-                            <p className="mt-1 text-sm text-red-400">{formik.errors.university}</p>
-                          )}
+                          <div className="form-group group">
+                            <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-teal-400 transition-colors duration-300 ml-1">
+                              Phone Number
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <Phone className="h-5 w-5 text-gray-400 group-focus-within:text-teal-400 transition-colors duration-300" />
+                                </div>
+                                <input
+                                  type="tel"
+                                  name="contactPhoneNumber"
+                                  value={formik.values.contactPhoneNumber}
+                                  onChange={formik.handleChange}
+                                  onBlur={formik.handleBlur}
+                                  placeholder="Enter your phone number"
+                                  className={`w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border ${
+                                    formik.touched.contactPhoneNumber && formik.errors.contactPhoneNumber 
+                                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" 
+                                      : "border-gray-700 focus:border-teal-500 focus:ring-teal-500/30"
+                                  } focus:outline-none focus:ring-2 transition-all duration-300 text-white shadow-sm`}
+                                />
+                              </div>
+                            </div>
+                            {formik.touched.contactPhoneNumber && formik.errors.contactPhoneNumber && (
+                              <p className="mt-2 text-sm text-red-400 flex items-center gap-1 animate-fade-in">
+                                <XCircle className="w-4 h-4" /> {formik.errors.contactPhoneNumber}
+                              </p>
+                            )}
+                          </div>
                         </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Faculty
+                        
+                        {/* Location Picker - Full width */}
+                        <div className="form-group group mt-8">
+                          <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-teal-400 transition-colors duration-300 ml-1">
+                            Location
                           </label>
-                          <input
-                            type="text"
-                            name="faculty"
-                            value={formik.values.faculty}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                            placeholder="Enter your faculty"
-                            className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                              formik.touched.faculty && formik.errors.faculty ? "border-red-500" : ""
-                            }`}
-                          />
-                          {formik.touched.faculty && formik.errors.faculty && (
-                            <p className="mt-1 text-sm text-red-400">{formik.errors.faculty}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Field of Study
-                          </label>
-                          <input
-                            type="text"
-                            name="fieldOfStudy"
-                            value={formik.values.fieldOfStudy}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                            placeholder="Enter your field of study"
-                            className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                              formik.touched.fieldOfStudy && formik.errors.fieldOfStudy ? "border-red-500" : ""
-                            }`}
-                          />
-                          {formik.touched.fieldOfStudy && formik.errors.fieldOfStudy && (
-                            <p className="mt-1 text-sm text-red-400">{formik.errors.fieldOfStudy}</p>
-                          )}
+                          <div className="relative rounded-xl overflow-hidden shadow-md border border-gray-700 transition-all duration-300 group-hover:border-teal-500/50">
+                            <LocationPicker onLocationSelect={handleLocationSelect} />
+                          </div>
+                          <div className="relative mt-3">
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <MapPin className="h-5 w-5 text-gray-400 group-focus-within:text-teal-400 transition-colors duration-300" />
+                              </div>
+                              <input
+                                type="text"
+                                name="address"
+                                value={formik.values.address}
+                                onChange={formik.handleChange}
+                                placeholder="Selected location address"
+                                className="w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all duration-300 text-white shadow-sm"
+                                readOnly
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="pt-4">
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Updating Profile...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-5 h-5" />
-                            Save Profile
-                          </>
-                        )}
-                      </button>
+                      {/* Academic Information */}
+                      <div className="form-section">
+                        <h3 className="text-xl font-bold mb-6 flex items-center group">
+                          <span className="inline-block mr-4 bg-gradient-to-r from-amber-500 to-orange-500 p-3 rounded-xl shadow-md">
+                            <GraduationCap className="w-6 h-6 text-white" />
+                          </span>
+                          <span className="text-white tracking-tight">
+                            Academic Information
+                          </span>
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div className="form-group group">
+                            <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-orange-400 transition-colors duration-300 ml-1">
+                              University
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <Building2 className="h-5 w-5 text-gray-400 group-focus-within:text-orange-400 transition-colors duration-300" />
+                                </div>
+                                <input
+                                  type="text"
+                                  name="university"
+                                  value={formik.values.university}
+                                  onChange={formik.handleChange}
+                                  onBlur={formik.handleBlur}
+                                  placeholder="Enter your university"
+                                  className={`w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border ${
+                                    formik.touched.university && formik.errors.university 
+                                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" 
+                                      : "border-gray-700 focus:border-orange-500 focus:ring-orange-500/30"
+                                  } focus:outline-none focus:ring-2 transition-all duration-300 text-white shadow-sm`}
+                                />
+                              </div>
+                            </div>
+                            {formik.touched.university && formik.errors.university && (
+                              <p className="mt-2 text-sm text-red-400 flex items-center gap-1 animate-fade-in">
+                                <XCircle className="w-4 h-4" /> {formik.errors.university}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="form-group group">
+                            <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-orange-400 transition-colors duration-300 ml-1">
+                              Faculty
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <Building2 className="h-5 w-5 text-gray-400 group-focus-within:text-orange-400 transition-colors duration-300" />
+                                </div>
+                                <input
+                                  type="text"
+                                  name="faculty"
+                                  value={formik.values.faculty}
+                                  onChange={formik.handleChange}
+                                  onBlur={formik.handleBlur}
+                                  placeholder="Enter your faculty"
+                                  className={`w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border ${
+                                    formik.touched.faculty && formik.errors.faculty 
+                                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" 
+                                      : "border-gray-700 focus:border-orange-500 focus:ring-orange-500/30"
+                                  } focus:outline-none focus:ring-2 transition-all duration-300 text-white shadow-sm`}
+                                />
+                              </div>
+                            </div>
+                            {formik.touched.faculty && formik.errors.faculty && (
+                              <p className="mt-2 text-sm text-red-400 flex items-center gap-1 animate-fade-in">
+                                <XCircle className="w-4 h-4" /> {formik.errors.faculty}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="form-group group md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-orange-400 transition-colors duration-300 ml-1">
+                              Field of Study
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <GraduationCap className="h-5 w-5 text-gray-400 group-focus-within:text-orange-400 transition-colors duration-300" />
+                                </div>
+                                <input
+                                  type="text"
+                                  name="fieldOfStudy"
+                                  value={formik.values.fieldOfStudy}
+                                  onChange={formik.handleChange}
+                                  onBlur={formik.handleBlur}
+                                  placeholder="Enter your field of study"
+                                  className={`w-full bg-gray-800 pl-10 pr-4 py-3 rounded-xl border ${
+                                    formik.touched.fieldOfStudy && formik.errors.fieldOfStudy 
+                                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" 
+                                      : "border-gray-700 focus:border-orange-500 focus:ring-orange-500/30"
+                                  } focus:outline-none focus:ring-2 transition-all duration-300 text-white shadow-sm`}
+                                />
+                              </div>
+                            </div>
+                            {formik.touched.fieldOfStudy && formik.errors.fieldOfStudy && (
+                              <p className="mt-2 text-sm text-red-400 flex items-center gap-1 animate-fade-in">
+                                <XCircle className="w-4 h-4" /> {formik.errors.fieldOfStudy}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-8 relative">
+                        <button
+                          type="submit"
+                          disabled={isLoading}
+                          className="relative w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-300 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                        >
+                          {isLoading ? (
+                            <>
+                              <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                              <span>Updating Profile...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-6 h-6" />
+                              Save Profile
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

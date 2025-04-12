@@ -5,6 +5,7 @@ import * as Yup from "yup";
 import { Upload } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { axiosInstance } from "../../../lib/axios";
+import { BaseUrl } from "../../../lib/axios";
 
 // Validation Schema
 const validationSchema = Yup.object().shape({
@@ -49,7 +50,7 @@ export default function SaProfile() {
       setIsLoading(true);
       try {
         // Strip the base URL from pictureUrl before sending
-        const picturePath = values.pictureUrl;
+        const picturePath = values.pictureUrl.replace(BaseUrl, "");
         const updatedValues = { ...values, pictureUrl: picturePath };
 
         const response = await axiosInstance().post("/sa/update-profile", updatedValues);
@@ -114,7 +115,6 @@ export default function SaProfile() {
 
     setPictureFile(file);
     const tempUrl = URL.createObjectURL(file);
-    console.log("Temporary preview URL:", tempUrl);
     setPreviewUrl(tempUrl);
 
     const formData = new FormData();
@@ -128,13 +128,8 @@ export default function SaProfile() {
         },
       });
 
-      console.log("Upload response:", response.data);
-
       if (response.data?.isSuccess) {
-        const pictureUrl = tempUrl; // Use the temporary URL for preview
-        console.log("New picture URL:", pictureUrl);
-        formik.setFieldValue("pictureUrl", pictureUrl);
-        setPreviewUrl(pictureUrl);
+        formik.setFieldValue("pictureUrl", response.data.data.pictureUrl);
         toast.success("Profile picture uploaded successfully!");
       }
     } catch (error) {
@@ -195,8 +190,9 @@ export default function SaProfile() {
                   />
                   <label
                     htmlFor="profile-picture"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2 transition-colors"
                   >
+                    <Upload size={20} />
                     {previewUrl ? "Change Picture" : "Upload Picture"}
                   </label>
                 </div>

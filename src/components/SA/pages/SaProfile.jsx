@@ -5,7 +5,6 @@ import * as Yup from "yup";
 import { Upload } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { axiosInstance } from "../../../lib/axios";
-import { BaseUrl } from "../../../lib/axios";
 
 // Validation Schema
 const validationSchema = Yup.object().shape({
@@ -50,7 +49,7 @@ export default function SaProfile() {
       setIsLoading(true);
       try {
         // Strip the base URL from pictureUrl before sending
-        const picturePath = values.pictureUrl.replace(`${BaseUrl}/`, "");
+        const picturePath = values.pictureUrl;
         const updatedValues = { ...values, pictureUrl: picturePath };
 
         const response = await axiosInstance().post("/sa/update-profile", updatedValues);
@@ -80,7 +79,7 @@ export default function SaProfile() {
             name: profileData.name || "",
             biography: profileData.biography || "",
             foundingDate: profileData.foundingDate ? new Date(profileData.foundingDate).toISOString().split('T')[0] : "",
-            pictureUrl: BaseUrl+"/"+profileData.pictureUrl || "",
+            pictureUrl: profileData.pictureUrl || "",
             joinFormUrl: profileData.joinFormUrl || "",
             websiteUrl: profileData.websiteUrl || "",
             contactEmail: profileData.contactEmail || currentUser?.email || "",
@@ -94,7 +93,7 @@ export default function SaProfile() {
 
           // Set preview URL if picture exists
           if (profileData.pictureUrl) {
-            const fullPictureUrl = `${BaseUrl}/${profileData.pictureUrl}`;
+            const fullPictureUrl = profileData.pictureUrl;
             console.log("Setting preview URL:", fullPictureUrl);
             setPreviewUrl(fullPictureUrl);
           }

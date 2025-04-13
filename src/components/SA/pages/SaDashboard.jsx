@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Activity, Users, FileText, TrendingUp } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore.js";
+import { axiosInstance } from "../../../lib/axios";
+import { toast } from "react-hot-toast";
 import ActivityChart from "../components/charts/ActivityChart.jsx";
 import DistributionChart from "../components/charts/DistributionChart.jsx";
 import AttendanceChart from "../components/charts/AttendanceChart.jsx";
@@ -9,6 +11,7 @@ import EngagementChart from "../components/charts/EngagementChart.jsx";
 function SaDashboard() {
   const { currentUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [saProfile, setSaProfile] = useState(null);
   const [dashboardData, setDashboardData] = useState({
     activities: { count: 0, trend: "+12%" },
     teams: { count: 0, trend: "+5%" },
@@ -16,7 +19,50 @@ function SaDashboard() {
     reports: { count: 0, trend: "+8%" }
   });
 
-  // Simulate data loading
+  // Fetch SA profile
+  useEffect(() => {
+    const fetchSaProfile = async () => {
+      try {
+        const response = await axiosInstance().get("/sa/profile");
+        console.log("SA Profile Response:", response.data);
+        
+        if (response.data?.isSuccess) {
+          const profileData = response.data.data;
+          setSaProfile(profileData);
+          // Store in localStorage
+          localStorage.setItem('saProfile', JSON.stringify(profileData));
+          toast.success("Profile loaded successfully");
+        } else {
+          console.error("Failed to fetch SA profile:", response.data);
+          toast.error("Failed to load profile");
+        }
+      } catch (error) {
+        console.error("Error fetching SA profile:", error);
+        toast.error(error.response?.data?.message || "Failed to load profile");
+      }
+    };
+
+    // Try to get profile from localStorage first
+    const storedProfile = localStorage.getItem('saProfile');
+    if (storedProfile) {
+      const parsedProfile = JSON.parse(storedProfile);
+      setSaProfile(parsedProfile);
+      // Only fetch if stored data is older than 1 hour
+      const storedTime = localStorage.getItem('saProfileTimestamp');
+      const ONE_HOUR = 60 * 60 * 1000; // 1 hour in milliseconds
+      
+      if (!storedTime || Date.now() - parseInt(storedTime) > ONE_HOUR) {
+        fetchSaProfile();
+        localStorage.setItem('saProfileTimestamp', Date.now().toString());
+      }
+    } else {
+      // No stored profile, fetch from API
+      fetchSaProfile();
+      localStorage.setItem('saProfileTimestamp', Date.now().toString());
+    }
+  }, []);
+
+  // Simulate dashboard data loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setDashboardData({
@@ -36,11 +82,36 @@ function SaDashboard() {
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Welcome, {currentUser?.UserName || "Admin"}!</h1>
-            <p className="text-gray-100 max-w-2xl">
-              Manage your student activities, teams, and followers from this dashboard. Get insights into participation and engagement metrics.
-            </p>
+          <div className="flex items-center gap-4">
+            {saProfile?.pictureUrl ? (
+              <img
+                src={saProfile.pictureUrl}
+                alt="Profile"
+                className="w-16 h-16 rounded-full object-cover border-4 border-white/20"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://via.placeholder.com/64?text=SA";
+                }}
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center border-4 border-white/20">
+                <span className="text-2xl font-bold text-white">
+                  {saProfile?.name?.charAt(0) || currentUser?.UserName?.charAt(0) || 'S'}
+                </span>
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold mb-1">
+                Welcome, {saProfile?.name || currentUser?.UserName || "Admin"}!
+              </h1>
+              <p className="text-gray-100 max-w-2xl">
+                {saProfile?.biography ? (
+                  <span className="line-clamp-2">{saProfile.biography}</span>
+                ) : (
+                  "Manage your student activities, teams, and followers from this dashboard."
+                )}
+              </p>
+            </div>
           </div>
           <div className="mt-4 md:mt-0">
             <button className="bg-white text-blue-600 hover:bg-blue-50 transition-colors px-4 py-2 rounded-lg font-medium shadow-sm">

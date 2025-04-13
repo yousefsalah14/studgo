@@ -8,9 +8,18 @@ import {
   X,
   Check,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  User,
+  MapPin,
+  Phone,
+  Calendar,
+  GraduationCap,
+  Building2
 } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
+import { axiosInstance } from "../../../lib/axios";
+import { toast } from "react-hot-toast";
 
 // Mock data for followers
 const FOLLOWERS_DATA = [
@@ -77,7 +86,7 @@ const FOLLOWERS_DATA = [
 ];
 
 function SaFollowers() {
-  const [followers, setFollowers] = useState(FOLLOWERS_DATA);
+  const [followers, setFollowers] = useState([]);
   const [filteredFollowers, setFilteredFollowers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -87,6 +96,7 @@ function SaFollowers() {
   const [currentFollower, setCurrentFollower] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -95,8 +105,31 @@ function SaFollowers() {
     status: "Active"
   });
   const { apiRequest } = useAuthStore();
+  const [selectedFollower, setSelectedFollower] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // Filter followers based on search query and filters
+  // Fetch followers on component mount
+  useEffect(() => {
+    fetchFollowers();
+  }, []);
+
+  const fetchFollowers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance().get("/sa/followers");
+      if (response.data?.isSuccess && response.data?.data) {
+        setFollowers(response.data.data);
+        setFilteredFollowers(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching followers:", error);
+      toast.error("Failed to fetch followers");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter followers based on search query
   useEffect(() => {
     let result = followers;
     
@@ -105,24 +138,20 @@ function SaFollowers() {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         follower => 
-          follower.name.toLowerCase().includes(query) || 
-          follower.email.toLowerCase().includes(query) ||
-          follower.department.toLowerCase().includes(query)
+          follower.firstName.toLowerCase().includes(query) || 
+          follower.lastName.toLowerCase().includes(query) ||
+          follower.fieldOfStudy.toLowerCase().includes(query) ||
+          follower.university.toLowerCase().includes(query) ||
+          follower.faculty.toLowerCase().includes(query) ||
+          follower.contactEmail.toLowerCase().includes(query) ||
+          follower.contactPhoneNumber.toLowerCase().includes(query) ||
+          follower.address.toLowerCase().includes(query)
       );
     }
     
-    // Apply status filter
-    if (statusFilter !== "All") {
-      result = result.filter(follower => follower.status === statusFilter);
-    }
-    
-    // Apply department filter
-    if (departmentFilter !== "All") {
-      result = result.filter(follower => follower.department === departmentFilter);
-    }
-    
     setFilteredFollowers(result);
-  }, [followers, searchQuery, statusFilter, departmentFilter]);
+    setCurrentPage(1); // Reset to first page when search changes
+  }, [followers, searchQuery]);
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -161,49 +190,40 @@ function SaFollowers() {
   };
 
   // Handle add follower
-  const handleAddFollower = (e) => {
+  const handleAddFollower = async (e) => {
     e.preventDefault();
-    
-    // In a real app, you would make an API call here
-    const newFollower = {
-      id: followers.length + 1,
-      ...formData,
-      joinDate: new Date().toISOString().split('T')[0],
-      avatar: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 50) + 1}.jpg`
-    };
-    
-    setFollowers([...followers, newFollower]);
-    setIsAddModalOpen(false);
-    
-    // Example API call (commented out)
-    // try {
-    //   const response = await apiRequest('/followers', 'POST', formData);
-    //   setFollowers([...followers, response.data]);
-    // } catch (error) {
-    //   console.error('Error adding follower:', error);
-    // }
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance().post("/sa/followers", formData);
+      if (response.data?.isSuccess) {
+        toast.success("Follower added successfully!");
+        fetchFollowers(); // Refresh the list
+        setIsAddModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Error adding follower:", error);
+      toast.error(error.response?.data?.message || "Failed to add follower");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle remove follower
-  const handleRemoveFollower = () => {
-    // In a real app, you would make an API call here
-    const updatedFollowers = followers.filter(
-      follower => follower.id !== currentFollower.id
-    );
-    
-    setFollowers(updatedFollowers);
-    setIsRemoveModalOpen(false);
-    
-    // Example API call (commented out)
-    // try {
-    //   await apiRequest(`/followers/${currentFollower.id}`, 'DELETE');
-    //   const updatedFollowers = followers.filter(
-    //     follower => follower.id !== currentFollower.id
-    //   );
-    //   setFollowers(updatedFollowers);
-    // } catch (error) {
-    //   console.error('Error removing follower:', error);
-    // }
+  const handleRemoveFollower = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance().delete(`/sa/followers/${currentFollower.id}`);
+      if (response.data?.isSuccess) {
+        toast.success("Follower removed successfully!");
+        fetchFollowers(); // Refresh the list
+        setIsRemoveModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Error removing follower:", error);
+      toast.error(error.response?.data?.message || "Failed to remove follower");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Get unique departments for filter
@@ -213,13 +233,6 @@ function SaFollowers() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h1 className="text-2xl font-bold text-white mb-4 md:mb-0">Followers</h1>
-        <button
-          onClick={openAddModal}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <UserPlus size={18} className="mr-2" />
-          Add Follower
-        </button>
       </div>
 
       {/* Search and Filters */}
@@ -239,87 +252,82 @@ function SaFollowers() {
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
             />
           </div>
-
-          {/* Status Filter */}
-          <div className="w-full md:w-48">
-            <select
-              className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
-
-          {/* Department Filter */}
-          <div className="w-full md:w-48">
-            <select
-              className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-            >
-              <option value="All">All Departments</option>
-              {departments.map(department => (
-                <option key={department} value={department}>{department}</option>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
 
       {/* Followers List */}
       <div className="bg-gray-800 rounded-lg overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-          {currentItems.length > 0 ? (
-            currentItems.map((follower) => (
-              <div key={follower.id} className="bg-gray-700 rounded-lg overflow-hidden shadow-md">
-                <div className="p-4 flex items-center space-x-4">
-                  <img
-                    src={follower.avatar}
-                    alt={follower.name}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-600"
-                  />
-                  <div className="flex-1">
-                    <h3 className="text-white font-medium">{follower.name}</h3>
-                    <p className="text-gray-400 text-sm">{follower.department}</p>
-                    <div className="flex items-center mt-1">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        follower.status === 'Active' 
-                          ? 'bg-green-900/30 text-green-400' 
-                          : 'bg-red-900/30 text-red-400'
-                      }`}>
-                        {follower.status}
-                      </span>
-                      <span className="text-gray-500 text-xs ml-2">{follower.year}</span>
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-400">
+            Loading followers...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3">
+            {currentItems.length > 0 ? (
+              currentItems.map((follower) => (
+                <div 
+                  key={follower.id} 
+                  className="bg-gray-700 rounded-lg overflow-hidden shadow-md cursor-pointer hover:bg-gray-600 transition-colors"
+                  onClick={() => {
+                    setSelectedFollower(follower);
+                    setShowDetailsModal(true);
+                  }}
+                >
+                  <div className="p-3 flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
+                      {follower.pictureUrl && follower.pictureUrl !== "Picture have Issue" ? (
+                        <img
+                          src={follower.pictureUrl}
+                          alt={`${follower.firstName} ${follower.lastName}`}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-semibold text-gray-300">
+                          {follower.firstName.charAt(0)}{follower.lastName.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-medium truncate">
+                        {follower.firstName} {follower.lastName}
+                      </h3>
+                      <p className="text-gray-400 text-sm truncate">{follower.fieldOfStudy}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-gray-500 text-xs truncate">
+                          {follower.university} - {follower.faculty}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-3">
+                        <a
+                          href={`mailto:${follower.contactEmail}`}
+                          className="text-blue-400 hover:text-blue-300 flex items-center"
+                        >
+                          <Mail size={14} className="mr-1" />
+                          <span className="text-xs">Contact</span>
+                        </a>
+                        {follower.cvUrl && follower.cvUrl !== "CV have Issue" && (
+                          <a
+                            href={follower.cvUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-400 hover:text-green-300 flex items-center"
+                          >
+                            <FileText size={14} className="mr-1" />
+                            <span className="text-xs">CV</span>
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="border-t border-gray-600 px-4 py-3 flex justify-between">
-                  <a
-                    href={`mailto:${follower.email}`}
-                    className="text-blue-400 hover:text-blue-300 flex items-center"
-                  >
-                    <Mail size={16} className="mr-1" />
-                    <span className="text-sm">Contact</span>
-                  </a>
-                  <button
-                    onClick={() => openRemoveModal(follower)}
-                    className="text-red-400 hover:text-red-300 flex items-center"
-                  >
-                    <UserMinus size={16} className="mr-1" />
-                    <span className="text-sm">Remove</span>
-                  </button>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-4 text-center py-8 text-gray-400">
+                No followers found
               </div>
-            ))
-          ) : (
-            <div className="col-span-3 text-center py-8 text-gray-400">
-              No followers found
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Pagination */}
         {filteredFollowers.length > 0 && (
@@ -368,140 +376,110 @@ function SaFollowers() {
         )}
       </div>
 
-      {/* Add Follower Modal */}
-      {isAddModalOpen && (
+      {/* Follower Details Modal */}
+      {showDetailsModal && selectedFollower && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg w-full max-w-2xl">
             <div className="flex justify-between items-center p-4 border-b border-gray-700">
-              <h3 className="text-lg font-medium text-white">Add New Follower</h3>
+              <h3 className="text-xl font-semibold text-white">Follower Details</h3>
               <button
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={() => setShowDetailsModal(false)}
                 className="text-gray-400 hover:text-white"
               >
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleAddFollower} className="p-4">
-              <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Department
-                  </label>
-                  <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Computer Science">Computer Science</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="Business">Business</option>
-                    <option value="Medicine">Medicine</option>
-                    <option value="Arts">Arts</option>
-                  </select>
+            <div className="p-6">
+              <div className="flex items-start gap-6">
+                <div className="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
+                  {selectedFollower.pictureUrl && selectedFollower.pictureUrl !== "Picture have Issue" ? (
+                    <img
+                      src={selectedFollower.pictureUrl}
+                      alt={`${selectedFollower.firstName} ${selectedFollower.lastName}`}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl font-semibold text-gray-300">
+                      {selectedFollower.firstName.charAt(0)}{selectedFollower.lastName.charAt(0)}
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Year
-                  </label>
-                  <select
-                    name="year"
-                    value={formData.year}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                    <option value="5th Year">5th Year</option>
-                  </select>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    {selectedFollower.firstName} {selectedFollower.lastName}
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="flex items-center gap-3">
+                      <User className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-400">Field of Study</p>
+                        <p className="text-white">{selectedFollower.fieldOfStudy}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <GraduationCap className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-400">University</p>
+                        <p className="text-white">{selectedFollower.university}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-400">Faculty</p>
+                        <p className="text-white">{selectedFollower.faculty}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Calendar className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-400">Birth Date</p>
+                        <p className="text-white">{new Date(selectedFollower.birthDate).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-400">Email</p>
+                        <p className="text-white">{selectedFollower.contactEmail}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-400">Phone</p>
+                        <p className="text-white">{selectedFollower.contactPhoneNumber}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 md:col-span-2">
+                      <MapPin className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-400">Address</p>
+                        <p className="text-white">{selectedFollower.address}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 flex items-center gap-4">
+                    <a
+                      href={`mailto:${selectedFollower.contactEmail}`}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <Mail size={16} />
+                      <span>Contact</span>
+                    </a>
+                    {selectedFollower.cvUrl && selectedFollower.cvUrl !== "CV have Issue" && (
+                      <a
+                        href={selectedFollower.cvUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                      >
+                        <FileText size={16} />
+                        <span>View CV</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Add Follower
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Remove Confirmation Modal */}
-      {isRemoveModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="p-4 border-b border-gray-700">
-              <h3 className="text-lg font-medium text-white">Confirm Remove</h3>
-            </div>
-            <div className="p-4">
-              <p className="text-gray-300 mb-4">
-                Are you sure you want to remove "{currentFollower?.name}" from your followers? This action cannot be undone.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setIsRemoveModalOpen(false)}
-                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleRemoveFollower}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  Remove
-                </button>
               </div>
             </div>
           </div>

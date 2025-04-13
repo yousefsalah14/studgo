@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { axiosInstance } from '../../../lib/axios';
+import { useQuery } from 'react-query';
 
 const NetworkBackground = () => {
   const [nodes, setNodes] = useState([]);
@@ -204,7 +205,10 @@ const NetworkBackground = () => {
 };
 
 const Home = () => {
-  const [stats, setStats] = useState({
+  const [showStats, setShowStats] = useState(false);
+
+  // Use React Query to fetch stats
+  const { data: stats = {
     activeStudents: 0,
     upcomingActivities: 0,
     internshipOpportunities: 0,
@@ -212,23 +216,16 @@ const Home = () => {
     appliedEvents: 0,
     appliedWorkshops: 0,
     activeOrganizations: 0
-  });
-  const [showStats, setShowStats] = useState(false);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await axiosInstance().get('/State/GetStates');
-        if (response.data.isSuccess) {
-          setStats(response.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
+  }, isLoading } = useQuery(
+    'stats',
+    async () => {
+      const response = await axiosInstance().get('/State/GetStates');
+      if (response.data.isSuccess) {
+        return response.data.data;
       }
-    };
-
-    fetchStats();
-  }, []);
+      throw new Error('Failed to fetch stats');
+    }
+  );
 
   const statsCards = [
     { label: 'Active Students', value: stats.activeStudents, icon: Users },

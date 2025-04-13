@@ -153,35 +153,50 @@ export default function Profile() {
         const api = axiosInstance();
         const response = await api.post("/student/update-profile", values, {
           signal: controller.signal,
-          timeout: 20000 // 20 second timeout
+          timeout: 20000
         });
         
         if (response.data.isSuccess) {
-          const data = response.data.data;
-          setProfileData(data);
-          setIsProfileSaved(true);
-          setShowProfileCard(true);
-          toast.success(response.data.message || "Profile updated successfully!");
-          
-          // Update form values with the response data
-          formik.setValues({
-            firstName: data.firstName || "",
-            lastName: data.lastName || "",
-            birthDate: data.birthDate ? new Date(data.birthDate).toISOString().split("T")[0] : "",
-            contactPhoneNumber: data.contactPhoneNumber || "",
-            contactEmail: data.contactEmail || currentUser?.email || "",
-            fieldOfStudy: data.fieldOfStudy || "",
-            university: data.university || "",
-            faculty: data.faculty || "",
-            address: data.address || "",
-            longitude: data.longitude || null,
-            latitude: data.latitude || null,
+          // Fetch the latest profile data after successful update
+          const profileResponse = await api.get("/student/profile", {
+            signal: controller.signal,
+            timeout: 15000,
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+              'Expires': '0',
+            }
           });
+
+          if (profileResponse.data.isSuccess) {
+            const updatedProfileData = profileResponse.data.data;
+            setProfileData(updatedProfileData);
+            setIsProfileSaved(true);
+            setShowProfileCard(true);
+            
+            // Update form values with the latest data
+            formik.setValues({
+              firstName: updatedProfileData.firstName || "",
+              lastName: updatedProfileData.lastName || "",
+              birthDate: updatedProfileData.birthDate ? new Date(updatedProfileData.birthDate).toISOString().split("T")[0] : "",
+              contactPhoneNumber: updatedProfileData.contactPhoneNumber || "",
+              contactEmail: updatedProfileData.contactEmail || currentUser?.email || "",
+              fieldOfStudy: updatedProfileData.fieldOfStudy || "",
+              university: updatedProfileData.university || "",
+              faculty: updatedProfileData.faculty || "",
+              address: updatedProfileData.address || "",
+              longitude: updatedProfileData.longitude || null,
+              latitude: updatedProfileData.latitude || null,
+            });
+            
+            toast.success(response.data.message || "Profile updated successfully!");
+          } else {
+            toast.error("Failed to fetch updated profile data");
+          }
         } else {
           toast.error(response.data.message || "Failed to update profile");
         }
       } catch (error) {
-        // Check for specific network errors that might cause runtime.lastError
         if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
           console.warn('Update request was aborted:', error);
           toast.error("Request timed out. Please try again.");
@@ -191,33 +206,25 @@ export default function Profile() {
           toast.error(errorMessage);
         }
       } finally {
-        controller.abort(); // Ensure controller is aborted
+        controller.abort();
         setIsLoading(false);
       }
     },
   });
 
-  // Then fetch profile in useEffect
+  // Modify the useEffect to properly handle profile data updates
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
 
     const fetchProfile = async () => {
-      // Check for token
       const token = localStorage.getItem("accessToken");
       if (!token) {
         if (isMounted) toast.error("Please login to access your profile");
         return;
       }
 
-      // Reset state at the beginning
-      if (isMounted) {
-        setShowProfileCard(false);
-        setIsProfileSaved(false);
-      }
-
       try {
-        console.log("Fetching profile data...");
         const api = axiosInstance();
         const response = await api.get("/student/profile", {
           signal: controller.signal,
@@ -229,15 +236,12 @@ export default function Profile() {
           }
         });
         
-        // Only update state if component is still mounted
         if (!isMounted) return;
         
         if (response.data.isSuccess) {
-          console.log("Profile data fetched successfully:", response.data.data);
           const data = response.data.data;
           setProfileData(data);
           
-          // Check if profile is completed
           const isProfileComplete = data && 
             data.firstName && 
             data.lastName && 
@@ -250,9 +254,9 @@ export default function Profile() {
             data.address;
           
           setIsProfileSaved(isProfileComplete);
+          setShowProfileCard(true);
           
           if (data) {
-            setShowProfileCard(true);
             formik.setValues({
               firstName: data.firstName || "",
               lastName: data.lastName || "",
@@ -271,14 +275,9 @@ export default function Profile() {
       } catch (error) {
         if (!isMounted) return;
         
-        console.error("Profile fetch error:", error);
-        
-        // Check for specific network errors that might cause runtime.lastError
         if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
           console.warn('Network request was aborted:', error);
-          // Don't show error toast for abort errors as they might be intentional
         } else if (error.response?.status === 400 && error.response.data.errors?.[0] === "Student not found.") {
-          // This is expected for new users - show the form
           setShowProfileCard(false);
           setIsProfileSaved(false);
           toast("Please complete your profile information");
@@ -290,28 +289,22 @@ export default function Profile() {
       }
     };
 
-    // Call the fetch function
     fetchProfile();
 
-    // Cleanup function to prevent memory leaks and state updates after unmount
     return () => {
       isMounted = false;
-      controller.abort(); // Abort any in-flight requests
+      controller.abort();
     };
-  }, [currentUser?.email]); // Add dependency on email to refetch if user changes
+  }, [currentUser?.email]); // Only depend on email changes
 
-  // Add logging to debug deletion issues
+  // Add a useEffect to handle profile data changes
   useEffect(() => {
     if (profileData) {
-      console.log("ProfileData state after update:", {
-        hasCv: !!profileData.cvUrl,
-        cvUrl: profileData.cvUrl,
-        hasPicture: !!profileData.pictureUrl,
-        pictureUrl: profileData.pictureUrl
-      });
+      setShowProfileCard(true);
+      setIsProfileSaved(true);
     }
   }, [profileData]);
-  
+
   // Helper function to check if URL is valid (not null, undefined, or empty string)
   const isValidUrl = (url) => {
     return url && 

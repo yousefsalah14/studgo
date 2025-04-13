@@ -6,22 +6,57 @@ import { Upload } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { axiosInstance } from "../../../lib/axios";
 import { BaseUrl } from "../../../lib/axios";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
 // Validation Schema
 const validationSchema = Yup.object().shape({
   name: Yup.string().required("Activity name is required"),
-  biography: Yup.string().required("Biography is required").min(50, "Biography must be at least 50 characters"),
+  biography: Yup.string().required("Biography is required").min(20, "Biography must be at least 20 characters"),
   foundingDate: Yup.date().required("Founding date is required"),
   contactEmail: Yup.string().email("Invalid email").required("Email is required"),
   contactPhoneNumber: Yup.string().required("Phone number is required"),
-  address: Yup.string().required("Address is required"),
   university: Yup.string().required("University is required"),
   faculty: Yup.string().required("Faculty is required"),
   websiteUrl: Yup.string().url("Invalid website URL").nullable(),
   joinFormUrl: Yup.string().url("Invalid join form URL").nullable(),
-  longitude: Yup.number().required("Longitude is required"),
-  latitude: Yup.number().required("Latitude is required"),
+  longitude: Yup.number().nullable(),
+  latitude: Yup.number().nullable(),
 });
+
+// Fix for default marker icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Add LocationMarker component
+function LocationMarker({ onLocationSelect }) {
+  const [position, setPosition] = useState(null);
+  const map = useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+      onLocationSelect(e.latlng);
+    },
+  });
+
+  return position === null ? null : (
+    <Marker
+      position={position}
+      draggable={true}
+      eventHandlers={{
+        dragend: (e) => {
+          const newPosition = e.target.getLatLng();
+          setPosition(newPosition);
+          onLocationSelect(newPosition);
+        },
+      }}
+    />
+  );
+}
 
 export default function SaProfile() {
   const { currentUser } = useAuthStore();
@@ -39,7 +74,6 @@ export default function SaProfile() {
       websiteUrl: "",
       contactEmail: currentUser?.email || "",
       contactPhoneNumber: "",
-      address: "",
       longitude: "0",
       latitude: "0",
       university: "",
@@ -47,17 +81,36 @@ export default function SaProfile() {
     },
     validationSchema,
     onSubmit: async (values) => {
-      setIsLoading(true);
       try {
-        // Strip the base URL from pictureUrl before sending
-        const picturePath = values.pictureUrl.replace(BaseUrl, "");
-        const updatedValues = { ...values, pictureUrl: picturePath };
+        setIsLoading(true);
+        console.log("Submitting form with values:", values); // Debug log
 
-        const response = await axiosInstance().post("/sa/update-profile", updatedValues);
+        // Format the data for submission, excluding pictureUrl
+        const formattedData = {
+          name: values.name,
+          biography: values.biography,
+          foundingDate: new Date(values.foundingDate).toISOString(),
+          joinFormUrl: values.joinFormUrl,
+          websiteUrl: values.websiteUrl,
+          contactEmail: values.contactEmail,
+          contactPhoneNumber: values.contactPhoneNumber,
+          longitude: parseFloat(values.longitude),
+          latitude: parseFloat(values.latitude),
+          university: values.university,
+          faculty: values.faculty,
+          address: "" // Add empty address field
+        };
+
+        console.log("Formatted data for submission:", formattedData); // Debug log
+
+        const response = await axiosInstance().post("/sa/update-profile", formattedData);
+        console.log("API Response:", response.data); // Debug log
+
         if (response.data?.isSuccess) {
-          // Fetch fresh profile data and update localStorage
           await updateStoredProfile();
           toast.success("Profile updated successfully!");
+        } else {
+          toast.error(response.data?.message || "Failed to update profile");
         }
       } catch (error) {
         console.error("Profile update error:", error);
@@ -97,7 +150,6 @@ export default function SaProfile() {
         websiteUrl: profileData.websiteUrl || "",
         contactEmail: profileData.contactEmail || currentUser?.email || "",
         contactPhoneNumber: profileData.contactPhoneNumber || "",
-        address: profileData.address || "",
         longitude: profileData.longitude || "0",
         latitude: profileData.latitude || "0",
         university: profileData.university || "",
@@ -143,6 +195,12 @@ export default function SaProfile() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Add handleLocationSelect function
+  const handleLocationSelect = (latlng) => {
+    formik.setFieldValue("latitude", latlng.lat);
+    formik.setFieldValue("longitude", latlng.lng);
   };
 
   return (
@@ -306,61 +364,29 @@ export default function SaProfile() {
 
                 {/* Location Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Address
+                      Location
                     </label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={formik.values.address}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        formik.touched.address && formik.errors.address ? "border-red-500" : ""
-                      }`}
-                    />
-                    {formik.touched.address && formik.errors.address && (
-                      <p className="mt-1 text-sm text-red-400">{formik.errors.address}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Longitude
-                    </label>
-                    <input
-                      type="number"
-                      name="longitude"
-                      value={formik.values.longitude}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        formik.touched.longitude && formik.errors.longitude ? "border-red-500" : ""
-                      }`}
-                    />
-                    {formik.touched.longitude && formik.errors.longitude && (
-                      <p className="mt-1 text-sm text-red-400">{formik.errors.longitude}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Latitude
-                    </label>
-                    <input
-                      type="number"
-                      name="latitude"
-                      value={formik.values.latitude}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        formik.touched.latitude && formik.errors.latitude ? "border-red-500" : ""
-                      }`}
-                    />
-                    {formik.touched.latitude && formik.errors.latitude && (
-                      <p className="mt-1 text-sm text-red-400">{formik.errors.latitude}</p>
-                    )}
+                    <div className="h-64 rounded-lg overflow-hidden">
+                      <MapContainer
+                        center={[parseFloat(formik.values.latitude) || 30.0444, parseFloat(formik.values.longitude) || 31.2357]}
+                        zoom={13}
+                        style={{ height: '100%', width: '100%' }}
+                      >
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
+                        <LocationMarker onLocationSelect={handleLocationSelect} />
+                      </MapContainer>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-400">
+                      Click on the map to set the location or drag the marker to adjust
+                    </div>
+                    <div className="mt-2 text-sm text-gray-400">
+                      Selected Coordinates: {formik.values.latitude}, {formik.values.longitude}
+                    </div>
                   </div>
 
                   <div>
@@ -447,7 +473,7 @@ export default function SaProfile() {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || !formik.isValid}
                     className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? "Saving..." : "Save Changes"}

@@ -35,7 +35,14 @@ function SaTeams() {
 
   // Fetch student activity profile and teams on component mount
   useEffect(() => {
-    fetchStudentActivityProfile();
+    const storedProfile = localStorage.getItem('saProfile');
+    if (storedProfile) {
+      const profileData = JSON.parse(storedProfile);
+      setStudentActivityId(profileData.id);
+      fetchTeams(profileData.id);
+    } else {
+      fetchStudentActivityProfile();
+    }
   }, []);
 
   const fetchStudentActivityProfile = async () => {
@@ -43,8 +50,11 @@ function SaTeams() {
       setIsLoading(true);
       const response = await axiosInstance().get("/sa/profile");
       if (response.data?.isSuccess && response.data?.data) {
-        setStudentActivityId(response.data.data.id);
-        fetchTeams(response.data.data.id);
+        const profileData = response.data.data;
+        setStudentActivityId(profileData.id);
+        // Store in localStorage
+        localStorage.setItem('saProfile', JSON.stringify(profileData));
+        fetchTeams(profileData.id);
       } else {
         toast.error("Failed to fetch student activity profile");
       }

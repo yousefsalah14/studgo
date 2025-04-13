@@ -45,11 +45,21 @@ function SaDashboard() {
     // Try to get profile from localStorage first
     const storedProfile = localStorage.getItem('saProfile');
     if (storedProfile) {
-      setSaProfile(JSON.parse(storedProfile));
+      const parsedProfile = JSON.parse(storedProfile);
+      setSaProfile(parsedProfile);
+      // Only fetch if stored data is older than 1 hour
+      const storedTime = localStorage.getItem('saProfileTimestamp');
+      const ONE_HOUR = 60 * 60 * 1000; // 1 hour in milliseconds
+      
+      if (!storedTime || Date.now() - parseInt(storedTime) > ONE_HOUR) {
+        fetchSaProfile();
+        localStorage.setItem('saProfileTimestamp', Date.now().toString());
+      }
+    } else {
+      // No stored profile, fetch from API
+      fetchSaProfile();
+      localStorage.setItem('saProfileTimestamp', Date.now().toString());
     }
-
-    // Fetch fresh data
-    fetchSaProfile();
   }, []);
 
   // Simulate dashboard data loading

@@ -10,118 +10,168 @@ import {
   X,
   Check,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MapPin,
+  Image,
+  FileText,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
+import { axiosInstance } from "../../../lib/axios";
+import { toast } from "react-hot-toast";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
-const ACTIVITIES_DATA = [
-  {
-    id: 1,
-    title: "Web Development Workshop",
-    description: "Learn the basics of web development with HTML, CSS, and JavaScript",
-    date: "2025-05-15",
-    location: "Computer Lab 101",
-    capacity: 30,
-    registered: 18,
-    category: "Workshop",
-    status: "Upcoming"
-  },
-  {
-    id: 2,
-    title: "AI Ethics Talk",
-    description: "Discussion on ethical considerations in artificial intelligence",
-    date: "2025-05-20",
-    location: "Auditorium B",
-    capacity: 100,
-    registered: 65,
-    category: "Talk",
-    status: "Upcoming"
-  },
-  {
-    id: 3,
-    title: "Mobile App Development",
-    description: "Hands-on workshop for building mobile applications",
-    date: "2025-04-05",
-    location: "Innovation Hub",
-    capacity: 25,
-    registered: 25,
-    category: "Workshop",
-    status: "Completed"
-  },
-  {
-    id: 4,
-    title: "Cybersecurity Seminar",
-    description: "Learn about protecting digital assets and information security",
-    date: "2025-06-10",
-    location: "Conference Room 3",
-    capacity: 50,
-    registered: 12,
-    category: "Seminar",
-    status: "Upcoming"
-  },
-  {
-    id: 5,
-    title: "Data Science Bootcamp",
-    description: "Intensive training on data analysis and machine learning",
-    date: "2025-04-01",
-    location: "Computer Lab 203",
-    capacity: 20,
-    registered: 20,
-    category: "Bootcamp",
-    status: "Completed"
-  }
-];
+// Fix for default marker icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+function LocationMarker({ onLocationSelect }) {
+  const [position, setPosition] = useState(null);
+  const map = useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+      onLocationSelect(e.latlng);
+    },
+  });
+
+  return position === null ? null : (
+    <Marker
+      position={position}
+      draggable={true}
+      eventHandlers={{
+        dragend: (e) => {
+          const newPosition = e.target.getLatLng();
+          setPosition(newPosition);
+          onLocationSelect(newPosition);
+        },
+      }}
+    />
+  );
+}
 
 function SaActivities() {
-  const [activities, setActivities] = useState(ACTIVITIES_DATA);
+  const [activities, setActivities] = useState([]);
   const [filteredActivities, setFilteredActivities] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [currentActivity, setCurrentActivity] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useAuthStore();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    date: "",
-    location: "",
-    capacity: "",
-    category: "Workshop",
-    status: "Upcoming"
+    longitude: 0,
+    latitude: 0,
+    startDate: "",
+    endDate: "",
+    deadlineDate: "",
+    numberOfSeats: 0,
+    activityType: "Workshop",
+    activityCategory: "Technical"
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
-  const { apiRequest } = useAuthStore();
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isGeneratingAgenda, setIsGeneratingAgenda] = useState(false);
+  const [isUploadingPoster, setIsUploadingPoster] = useState(false);
+  const [isDeletingAgenda, setIsDeletingAgenda] = useState(false);
+  const [showDeleteAgendaModal, setShowDeleteAgendaModal] = useState(false);
+  const [mapCenter, setMapCenter] = useState([30.0444, 31.2357]); // Default to Cairo coordinates
+
+  // Fetch activities from API
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setIsLoading(true);
+        // Get SA ID from local storage
+        const saProfile = JSON.parse(localStorage.getItem('saProfile'));
+        if (!saProfile?.id) {
+          toast.error("Student Activity profile not found");
+          return;
+        }
+
+        const response = await axiosInstance().get(`/activity/sa/${saProfile.id}`);
+        console.log("API Response:", response.data);
+        
+        if (response.data?.isSuccess) {
+          const activitiesData = response.data.data || [];
+          console.log("Activities data:", activitiesData);
+          setActivities(activitiesData);
+          setFilteredActivities(activitiesData);
+          toast.success("Activities loaded successfully");
+        } else {
+          console.error("API returned unsuccessful response:", response.data);
+          toast.error("Failed to fetch activities");
+          setActivities([]);
+          setFilteredActivities([]);
+        }
+      } catch (error) {
+        console.error("Error fetching activities:", error);
+        toast.error(error.response?.data?.message || "Failed to fetch activities");
+        setActivities([]);
+        setFilteredActivities([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []); // Empty dependency array since we're using localStorage
 
   // Filter activities based on search query and filters
   useEffect(() => {
-    let result = activities;
+    if (!activities) return; // Guard against null activities
+    
+    let result = [...activities]; // Create a new array to avoid reference issues
     
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         activity => 
-          activity.title.toLowerCase().includes(query) || 
-          activity.description.toLowerCase().includes(query) ||
-          activity.location.toLowerCase().includes(query)
+          (activity?.title || "").toLowerCase().includes(query) || 
+          (activity?.description || "").toLowerCase().includes(query) ||
+          (activity?.address || "").toLowerCase().includes(query) ||
+          (activity?.studentActivityName || "").toLowerCase().includes(query) ||
+          (activity?.activityType || "").toLowerCase().includes(query) ||
+          (activity?.activityCategory || "").toLowerCase().includes(query)
       );
     }
     
     // Apply status filter
     if (statusFilter !== "All") {
-      result = result.filter(activity => activity.status === statusFilter);
+      result = result.filter(activity => {
+        if (statusFilter === "Open") return activity.isOpened;
+        if (statusFilter === "Closed") return !activity.isOpened;
+        return true;
+      });
     }
     
     // Apply category filter
     if (categoryFilter !== "All") {
-      result = result.filter(activity => activity.category === categoryFilter);
+      result = result.filter(activity => activity?.activityCategory === categoryFilter);
+    }
+    
+    // Apply type filter
+    if (typeFilter !== "All") {
+      result = result.filter(activity => activity?.activityType === typeFilter);
     }
     
     setFilteredActivities(result);
-  }, [activities, searchQuery, statusFilter, categoryFilter]);
+  }, [activities, searchQuery, statusFilter, categoryFilter, typeFilter]);
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -146,11 +196,14 @@ function SaActivities() {
     setFormData({
       title: "",
       description: "",
-      date: "",
-      location: "",
-      capacity: "",
-      category: "Workshop",
-      status: "Upcoming"
+      longitude: 0,
+      latitude: 0,
+      startDate: "",
+      endDate: "",
+      deadlineDate: "",
+      numberOfSeats: 0,
+      activityType: "Workshop",
+      activityCategory: "Technical"
     });
     setIsAddModalOpen(true);
   };
@@ -161,11 +214,14 @@ function SaActivities() {
     setFormData({
       title: activity.title,
       description: activity.description,
-      date: activity.date,
-      location: activity.location,
-      capacity: activity.capacity,
-      category: activity.category,
-      status: activity.status
+      longitude: activity.longitude,
+      latitude: activity.latitude,
+      startDate: new Date(activity.startDate).toISOString().slice(0, 16),
+      endDate: new Date(activity.endDate).toISOString().slice(0, 16),
+      deadlineDate: new Date(activity.deadlineDate).toISOString().slice(0, 16),
+      numberOfSeats: activity.numberOfSeats,
+      activityType: activity.activityType,
+      activityCategory: activity.activityCategory
     });
     setIsEditModalOpen(true);
   };
@@ -177,76 +233,270 @@ function SaActivities() {
   };
 
   // Handle add activity
-  const handleAddActivity = (e) => {
+  const handleAddActivity = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    // In a real app, you would make an API call here
-    const newActivity = {
-      id: activities.length + 1,
-      ...formData,
-      registered: 0
-    };
-    
-    setActivities([...activities, newActivity]);
-    setIsAddModalOpen(false);
-    
-    // Example API call (commented out)
-    // try {
-    //   const response = await apiRequest('/activities', 'POST', formData);
-    //   setActivities([...activities, response.data]);
-    // } catch (error) {
-    //   console.error('Error adding activity:', error);
-    // }
+    try {
+      // Format dates to ISO string
+      const formattedData = {
+        ...formData,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        deadlineDate: new Date(formData.deadlineDate).toISOString(),
+        numberOfSeats: parseInt(formData.numberOfSeats),
+        longitude: parseFloat(formData.longitude),
+        latitude: parseFloat(formData.latitude),
+        address: "" // Add empty address
+      };
+
+      const response = await axiosInstance().post("/activity", formattedData);
+      
+      if (response.data?.isSuccess) {
+        toast.success("Activity created successfully!");
+        setIsAddModalOpen(false);
+        setFormData({
+          title: "",
+          description: "",
+          longitude: 0,
+          latitude: 0,
+          startDate: "",
+          endDate: "",
+          deadlineDate: "",
+          numberOfSeats: 0,
+          activityType: "Workshop",
+          activityCategory: "Technical"
+        });
+        // Refresh activities list
+        fetchActivities();
+      } else {
+        toast.error(response.data?.message || "Failed to create activity");
+      }
+    } catch (error) {
+      console.error("Error creating activity:", error);
+      toast.error(error.response?.data?.message || "Failed to create activity");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle edit activity
-  const handleEditActivity = (e) => {
+  const handleEditActivity = async (e) => {
     e.preventDefault();
-    
-    // In a real app, you would make an API call here
-    const updatedActivities = activities.map(activity => 
-      activity.id === currentActivity.id 
-        ? { ...activity, ...formData } 
-        : activity
-    );
-    
-    setActivities(updatedActivities);
-    setIsEditModalOpen(false);
-    
-    // Example API call (commented out)
-    // try {
-    //   await apiRequest(`/activities/${currentActivity.id}`, 'PUT', formData);
-    //   const updatedActivities = activities.map(activity => 
-    //     activity.id === currentActivity.id 
-    //       ? { ...activity, ...formData } 
-    //       : activity
-    //   );
-    //   setActivities(updatedActivities);
-    // } catch (error) {
-    //   console.error('Error updating activity:', error);
-    // }
+    try {
+      setIsLoading(true);
+      // Format dates to ISO string
+      const formattedData = {
+        ...formData,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        deadlineDate: new Date(formData.deadlineDate).toISOString(),
+        numberOfSeats: parseInt(formData.numberOfSeats),
+        longitude: parseFloat(formData.longitude),
+        latitude: parseFloat(formData.latitude),
+        address: "" // Add empty address
+      };
+
+      const response = await axiosInstance().put(`/activity/${currentActivity.id}`, formattedData);
+      
+      if (response.data?.isSuccess) {
+        // Update the activity in the lists
+        setActivities(activities.map(activity => 
+          activity.id === currentActivity.id 
+            ? { ...activity, ...formattedData }
+            : activity
+        ));
+        setFilteredActivities(filteredActivities.map(activity => 
+          activity.id === currentActivity.id 
+            ? { ...activity, ...formattedData }
+            : activity
+        ));
+        setIsEditModalOpen(false);
+        toast.success("Activity updated successfully");
+      } else {
+        toast.error(response.data?.message || "Failed to update activity");
+      }
+    } catch (error) {
+      console.error("Error updating activity:", error);
+      toast.error(error.response?.data?.message || "Failed to update activity");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle delete activity
-  const handleDeleteActivity = () => {
-    // In a real app, you would make an API call here
-    const updatedActivities = activities.filter(
-      activity => activity.id !== currentActivity.id
-    );
-    
-    setActivities(updatedActivities);
-    setIsDeleteModalOpen(false);
-    
-    // Example API call (commented out)
-    // try {
-    //   await apiRequest(`/activities/${currentActivity.id}`, 'DELETE');
-    //   const updatedActivities = activities.filter(
-    //     activity => activity.id !== currentActivity.id
-    //   );
-    //   setActivities(updatedActivities);
-    // } catch (error) {
-    //   console.error('Error deleting activity:', error);
-    // }
+  const handleDeleteActivity = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance().delete(`/activity/${currentActivity.id}`);
+      
+      if (response.data?.isSuccess) {
+        // Remove the activity from the lists
+        setActivities(activities.filter(activity => activity.id !== currentActivity.id));
+        setFilteredActivities(filteredActivities.filter(activity => activity.id !== currentActivity.id));
+        setIsDeleteModalOpen(false);
+        toast.success("Activity deleted successfully");
+      } else {
+        toast.error(response.data?.message || "Failed to delete activity");
+      }
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+      toast.error(error.response?.data?.message || "Failed to delete activity");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleActivity = async (activityId) => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance().put(`/activity/${activityId}/toggle`);
+      
+      if (response.data?.isSuccess) {
+        // Update the activity in the list
+        setActivities(activities.map(activity => 
+          activity.id === activityId 
+            ? { ...activity, isOpened: !activity.isOpened }
+            : activity
+        ));
+        setFilteredActivities(filteredActivities.map(activity => 
+          activity.id === activityId 
+            ? { ...activity, isOpened: !activity.isOpened }
+            : activity
+        ));
+        // Update the selected activity in the modal
+        setSelectedActivity(prev => ({
+          ...prev,
+          isOpened: !prev.isOpened
+        }));
+        toast.success("Activity status updated successfully");
+      } else {
+        toast.error(response.data?.message || "Failed to update activity status");
+      }
+    } catch (error) {
+      console.error("Error toggling activity:", error);
+      toast.error(error.response?.data?.message || "Failed to update activity status");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateAgenda = async (activityId) => {
+    try {
+      setIsGeneratingAgenda(true);
+      const response = await axiosInstance().post(`/activity/generate-agenda?activityId=${activityId}`);
+      
+      if (response.data?.isSuccess) {
+        toast.success("Agenda generated successfully");
+        // Update the activity in the list and modal
+        const updatedActivity = {
+          ...selectedActivity,
+          agendaUrl: `${response.data.data}`
+        };
+        
+        setActivities(activities.map(activity => 
+          activity.id === activityId 
+            ? updatedActivity
+            : activity
+        ));
+        setFilteredActivities(filteredActivities.map(activity => 
+          activity.id === activityId 
+            ? updatedActivity
+            : activity
+        ));
+        setSelectedActivity(updatedActivity);
+      } else {
+        toast.error(response.data?.message || "Failed to generate agenda");
+      }
+    } catch (error) {
+      console.error("Error generating agenda:", error);
+      toast.error(error.response?.data?.message || "Failed to generate agenda");
+    } finally {
+      setIsGeneratingAgenda(false);
+    }
+  };
+
+  const handleUploadPoster = async (activityId, file) => {
+    try {
+      setIsUploadingPoster(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axiosInstance().post(`/activity/${activityId}/upload-poster`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      if (response.data?.isSuccess) {
+        toast.success("Poster uploaded successfully");
+        // Update the activity in the list and modal
+        const updatedActivity = {
+          ...selectedActivity,
+          posterUrl: `${response.data.data}`
+        };
+        
+        setActivities(activities.map(activity => 
+          activity.id === activityId 
+            ? updatedActivity
+            : activity
+        ));
+        setFilteredActivities(filteredActivities.map(activity => 
+          activity.id === activityId 
+            ? updatedActivity
+            : activity
+        ));
+        setSelectedActivity(updatedActivity);
+      } else {
+        toast.error(response.data?.message || "Failed to upload poster");
+      }
+    } catch (error) {
+      console.error("Error uploading poster:", error);
+      toast.error(error.response?.data?.message || "Failed to upload poster");
+    } finally {
+      setIsUploadingPoster(false);
+    }
+  };
+
+  const handleDeleteAgenda = async (activityId) => {
+    try {
+      setIsDeletingAgenda(true);
+      const response = await axiosInstance().delete(`/activity/${activityId}/delete-agenda`);
+      
+      if (response.data?.isSuccess) {
+        toast.success("Agenda deleted successfully");
+        // Update the activity in the list and modal
+        setActivities(activities.map(activity => 
+          activity.id === activityId 
+            ? { ...activity, agendaUrl: null }
+            : activity
+        ));
+        setFilteredActivities(filteredActivities.map(activity => 
+          activity.id === activityId 
+            ? { ...activity, agendaUrl: null }
+            : activity
+        ));
+        setSelectedActivity(prev => ({
+          ...prev,
+          agendaUrl: null
+        }));
+      } else {
+        toast.error(response.data?.message || "Failed to delete agenda");
+      }
+    } catch (error) {
+      console.error("Error deleting agenda:", error);
+      toast.error(error.response?.data?.message || "Failed to delete agenda");
+    } finally {
+      setIsDeletingAgenda(false);
+    }
+  };
+
+  const handleLocationSelect = (latlng) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: latlng.lat,
+      longitude: latlng.lng
+    }));
   };
 
   return (
@@ -269,7 +519,7 @@ function SaActivities() {
           <div className="relative flex-grow">
             <input
               type="text"
-              placeholder="Search activities..."
+              placeholder="Search activities by title, description, address, or SA name..."
               className="w-full bg-gray-700 text-white px-4 py-2 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -288,9 +538,8 @@ function SaActivities() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="All">All Statuses</option>
-              <option value="Upcoming">Upcoming</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
+              <option value="Open">Open</option>
+              <option value="Closed">Closed</option>
             </select>
           </div>
 
@@ -302,116 +551,101 @@ function SaActivities() {
               onChange={(e) => setCategoryFilter(e.target.value)}
             >
               <option value="All">All Categories</option>
+              <option value="Technical">Technical</option>
+              <option value="NonTechnical">NonTechnical</option>
+              <option value="Mixed">Mixed</option>
+            </select>
+          </div>
+
+          {/* Type Filter */}
+          <div className="w-full md:w-48">
+            <select
+              className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="All">All Types</option>
+              <option value="Event">Event</option>
               <option value="Workshop">Workshop</option>
-              <option value="Seminar">Seminar</option>
-              <option value="Talk">Talk</option>
-              <option value="Bootcamp">Bootcamp</option>
+              <option value="Course">Course</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Activities Table */}
+      {/* Activities List */}
       <div className="bg-gray-800 rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Activity
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Capacity
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700 bg-gray-800">
-              {currentItems.length > 0 ? (
-                currentItems.map((activity) => (
-                  <tr key={activity.id} className="hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-white">{activity.title}</span>
-                        <span className="text-xs text-gray-400">{activity.description.substring(0, 50)}...</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Calendar size={16} className="text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-300">{new Date(activity.date).toLocaleDateString()}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {activity.location}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-900/30 text-blue-400">
-                        {activity.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        activity.status === 'Upcoming' 
-                          ? 'bg-green-900/30 text-green-400' 
-                          : activity.status === 'Completed' 
-                            ? 'bg-gray-700 text-gray-400' 
-                            : 'bg-red-900/30 text-red-400'
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-400">
+            Loading activities...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+            {currentItems.length > 0 ? (
+              currentItems.map((activity) => (
+                <div 
+                  key={activity.id} 
+                  className="bg-gray-700 rounded-lg overflow-hidden shadow-md cursor-pointer hover:bg-gray-600 transition-colors"
+                  onClick={() => {
+                    setSelectedActivity(activity);
+                    setShowDetailsModal(true);
+                  }}
+                >
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-semibold text-white">{activity.title}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        activity.isOpened ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
                       }`}>
-                        {activity.status}
+                        {activity.isOpened ? 'Open' : 'Closed'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Users size={16} className="text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-300">
-                          {activity.registered}/{activity.capacity}
-                        </span>
+                    </div>
+                    
+                    <p className="text-sm text-gray-400 mb-2">{activity.studentActivityName}</p>
+                    
+                    <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                      <Calendar size={16} />
+                      <span>{new Date(activity.startDate).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400">
+                        {activity.activityType}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(activity);
+                          }}
+                          className="text-blue-400 hover:text-blue-300"
+                        >
+                          <Edit size={20} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteModal(activity);
+                          }}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash size={20} />
+                        </button>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => openEditModal(activity)}
-                        className="text-blue-400 hover:text-blue-300 mr-3"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        onClick={() => openDeleteModal(activity)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-gray-400">
-                    No activities found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-400">
+                No activities found
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Pagination */}
-        {filteredActivities.length > 0 && (
+        {!isLoading && filteredActivities.length > 0 && (
           <div className="px-6 py-3 flex items-center justify-between border-t border-gray-700">
             <div className="text-sm text-gray-400">
               Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredActivities.length)} of {filteredActivities.length} activities
@@ -457,12 +691,182 @@ function SaActivities() {
         )}
       </div>
 
+      {/* Activity Details Modal */}
+      {showDetailsModal && selectedActivity && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <h3 className="text-xl font-semibold text-white">Activity Details</h3>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-1">{selectedActivity.title}</h2>
+                  <p className="text-gray-400">{selectedActivity.studentActivityName}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleToggleActivity(selectedActivity.id)}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                      selectedActivity.isOpened 
+                        ? 'bg-red-600 hover:bg-red-700' 
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        {selectedActivity.isOpened ? (
+                          <>
+                            <Lock size={16} />
+                            <span>Close Activity</span>
+                          </>
+                        ) : (
+                          <>
+                            <Unlock size={16} />
+                            <span>Open Activity</span>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </button>
+
+                  {!selectedActivity.agendaUrl && (
+                    <button
+                      onClick={() => handleGenerateAgenda(selectedActivity.id)}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center gap-2 transition-colors"
+                      disabled={isGeneratingAgenda}
+                    >
+                      {isGeneratingAgenda ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <>
+                          <FileText size={16} />
+                          <span>Generate Agenda</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2 transition-colors cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          handleUploadPoster(selectedActivity.id, file);
+                        }
+                      }}
+                    />
+                    {isUploadingPoster ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        <Image size={16} />
+                        <span>Upload Poster</span>
+                      </>
+                    )}
+                  </label>
+
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    selectedActivity.isOpened ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+                  }`}>
+                    {selectedActivity.isOpened ? 'Open' : 'Closed'}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-gray-300 mb-6">{selectedActivity.description}</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Calendar size={16} />
+                    <span>Start: {new Date(selectedActivity.startDate).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Calendar size={16} />
+                    <span>End: {new Date(selectedActivity.endDate).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Calendar size={16} />
+                    <span>Deadline: {new Date(selectedActivity.deadlineDate).toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <MapPin size={16} />
+                    <span>{selectedActivity.address}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Users size={16} />
+                    <span>Seats: {selectedActivity.numberOfSeats}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-900/30 text-purple-400">
+                      {selectedActivity.activityCategory}
+                    </span>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400">
+                      {selectedActivity.activityType}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                {selectedActivity.posterUrl && (
+                  <a
+                    href={selectedActivity.posterUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <Image size={16} />
+                    <span>View Poster</span>
+                  </a>
+                )}
+                {selectedActivity.agendaUrl && (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={selectedActivity.agendaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                    >
+                      <FileText size={16} />
+                      <span>View Agenda</span>
+                    </a>
+                    <button
+                      onClick={() => setShowDeleteAgendaModal(true)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                    >
+                      <Trash size={16} />
+                      <span>Delete Agenda</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Activity Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg w-full max-w-4xl">
             <div className="flex justify-between items-center p-4 border-b border-gray-700">
-              <h3 className="text-lg font-medium text-white">Add New Activity</h3>
+              <h3 className="text-xl font-semibold text-white">Add New Activity</h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
                 className="text-gray-400 hover:text-white"
@@ -470,107 +874,131 @@ function SaActivities() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleAddActivity} className="p-4">
-              <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+            <form onSubmit={handleAddActivity} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Activity Type</label>
+                  <select
+                    name="activityType"
+                    value={formData.activityType}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select Activity Type</option>
+                    <option value="Event">Event</option>
+                    <option value="Workshop">Workshop</option>
+                    <option value="Course">Course</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Activity Category</label>
+                  <select
+                    name="activityCategory"
+                    value={formData.activityCategory}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select Activity Category</option>
+                    <option value="Technical">Technical</option>
+                    <option value="NonTechnical">NonTechnical</option>
+                    <option value="Mixed">Mixed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Number of Seats</label>
+                  <input
+                    type="number"
+                    name="numberOfSeats"
+                    value={formData.numberOfSeats}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+                  <input
+                    type="datetime-local"
+                    name="startDate"
+                    value={formData.startDate}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+                  <input
+                    type="datetime-local"
+                    name="endDate"
+                    value={formData.endDate}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Deadline Date</label>
+                  <input
+                    type="datetime-local"
+                    name="deadlineDate"
+                    value={formData.deadlineDate}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
               </div>
+
+              {/* Map Section */}
               <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Description
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Location</label>
+                <div className="h-64 rounded-lg overflow-hidden">
+                  <MapContainer
+                    center={mapCenter}
+                    zoom={13}
+                    style={{ height: '100%', width: '100%' }}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    <LocationMarker onLocationSelect={handleLocationSelect} />
+                  </MapContainer>
+                </div>
+                <div className="mt-2 text-sm text-gray-400">
+                  Click on the map to set the location or drag the marker to adjust
+                </div>
+                <div className="mt-2 text-sm text-gray-400">
+                  Selected Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
-                  required
-                ></textarea>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Capacity
-                  </label>
-                  <input
-                    type="number"
-                    name="capacity"
-                    value={formData.capacity}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Category
-                  </label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Workshop">Workshop</option>
-                    <option value="Seminar">Seminar</option>
-                    <option value="Talk">Talk</option>
-                    <option value="Bootcamp">Bootcamp</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Upcoming">Upcoming</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 mt-6">
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
@@ -591,11 +1019,11 @@ function SaActivities() {
       )}
 
       {/* Edit Activity Modal */}
-      {isEditModalOpen && (
+      {isEditModalOpen && currentActivity && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg w-full max-w-2xl">
             <div className="flex justify-between items-center p-4 border-b border-gray-700">
-              <h3 className="text-lg font-medium text-white">Edit Activity</h3>
+              <h3 className="text-xl font-semibold text-white">Edit Activity</h3>
               <button
                 onClick={() => setIsEditModalOpen(false)}
                 className="text-gray-400 hover:text-white"
@@ -603,107 +1031,131 @@ function SaActivities() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleEditActivity} className="p-4">
-              <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+            <form onSubmit={handleEditActivity} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Activity Type</label>
+                  <select
+                    name="activityType"
+                    value={formData.activityType}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select Activity Type</option>
+                    <option value="Event">Event</option>
+                    <option value="Workshop">Workshop</option>
+                    <option value="Course">Course</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Activity Category</label>
+                  <select
+                    name="activityCategory"
+                    value={formData.activityCategory}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select Activity Category</option>
+                    <option value="Technical">Technical</option>
+                    <option value="NonTechnical">NonTechnical</option>
+                    <option value="Mixed">Mixed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Number of Seats</label>
+                  <input
+                    type="number"
+                    name="numberOfSeats"
+                    value={formData.numberOfSeats}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+                  <input
+                    type="datetime-local"
+                    name="startDate"
+                    value={formData.startDate}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+                  <input
+                    type="datetime-local"
+                    name="endDate"
+                    value={formData.endDate}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Deadline Date</label>
+                  <input
+                    type="datetime-local"
+                    name="deadlineDate"
+                    value={formData.deadlineDate}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
               </div>
+
+              {/* Map Section */}
               <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Description
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Location</label>
+                <div className="h-64 rounded-lg overflow-hidden">
+                  <MapContainer
+                    center={[formData.latitude, formData.longitude]}
+                    zoom={13}
+                    style={{ height: '100%', width: '100%' }}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    <LocationMarker onLocationSelect={handleLocationSelect} />
+                  </MapContainer>
+                </div>
+                <div className="mt-2 text-sm text-gray-400">
+                  Click on the map to set the location or drag the marker to adjust
+                </div>
+                <div className="mt-2 text-sm text-gray-400">
+                  Selected Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
-                  required
-                ></textarea>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Capacity
-                  </label>
-                  <input
-                    type="number"
-                    name="capacity"
-                    value={formData.capacity}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Category
-                  </label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Workshop">Workshop</option>
-                    <option value="Seminar">Seminar</option>
-                    <option value="Talk">Talk</option>
-                    <option value="Bootcamp">Bootcamp</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Upcoming">Upcoming</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 mt-6">
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
@@ -713,9 +1165,10 @@ function SaActivities() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  Save Changes
+                  {isLoading ? "Updating..." : "Update Activity"}
                 </button>
               </div>
             </form>
@@ -746,6 +1199,50 @@ function SaActivities() {
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
                   Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add the Delete Agenda Confirmation Modal */}
+      {showDeleteAgendaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex flex-col items-center text-center mb-6">
+                <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+                  <Trash size={32} className="text-red-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">Delete Agenda</h3>
+                <p className="text-gray-400">
+                  Are you sure you want to delete this agenda? This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDeleteAgendaModal(false)}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeleteAgenda(selectedActivity.id);
+                    setShowDeleteAgendaModal(false);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                  disabled={isDeletingAgenda}
+                >
+                  {isDeletingAgenda ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <Trash size={16} />
+                      <span>Delete</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

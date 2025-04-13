@@ -300,6 +300,28 @@ export default function Profile() {
     };
   }, [currentUser?.email]); // Add dependency on email to refetch if user changes
 
+  // Add logging to debug deletion issues
+  useEffect(() => {
+    if (profileData) {
+      console.log("ProfileData state after update:", {
+        hasCv: !!profileData.cvUrl,
+        cvUrl: profileData.cvUrl,
+        hasPicture: !!profileData.pictureUrl,
+        pictureUrl: profileData.pictureUrl
+      });
+    }
+  }, [profileData]);
+  
+  // Helper function to check if URL is valid (not null, undefined, or empty string)
+  const isValidUrl = (url) => {
+    return url && 
+           url !== "null" && 
+           url !== "undefined" && 
+           url !== "" &&
+           url !== "Picture have Issue" &&
+           url !== "CV have Issue";
+  };
+
   const handleLocationSelect = (address, lat, lng) => {
     // Only update if the formik object is still valid (component is mounted)
     if (formik && formik.setFieldValue) {
@@ -471,10 +493,19 @@ export default function Profile() {
       if (response.data.isSuccess) {
         toast.success(response.data.message || "CV deleted successfully");
         // Update local state instead of making another API call
-        setProfileData(prevData => ({
-          ...prevData,
-          cvUrl: null
-        }));
+        setProfileData(prevData => {
+          const updatedData = {
+            ...prevData,
+            cvUrl: null
+          };
+          console.log("Updated profile data after CV deletion:", updatedData);
+          return updatedData;
+        });
+        
+        // Force refresh to ensure UI updates properly
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         toast.error(response.data.message || "Failed to delete CV");
       }
@@ -518,10 +549,19 @@ export default function Profile() {
       if (response.data.isSuccess) {
         toast.success(response.data.message || "Profile picture deleted successfully");
         // Update local state instead of making another API call
-        setProfileData(prevData => ({
-          ...prevData,
-          pictureUrl: null
-        }));
+        setProfileData(prevData => {
+          const updatedData = {
+            ...prevData,
+            pictureUrl: null
+          };
+          console.log("Updated profile data after picture deletion:", updatedData);
+          return updatedData;
+        });
+        
+        // Force refresh to ensure UI updates properly
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         toast.error(response.data.message || "Failed to delete profile picture");
       }
@@ -628,14 +668,14 @@ export default function Profile() {
               
               <div className="relative w-40 h-40 rounded-full border-4 border-blue-500 overflow-hidden bg-gray-800 transform transition duration-300 group-hover:scale-105">
                 <img
-                  src={profileData?.pictureUrl ? profileData.pictureUrl : "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff"}
+                  src={isValidUrl(profileData?.pictureUrl) ? profileData.pictureUrl : "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff"}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
                 
                 {/* Action buttons positioned in the center */}
                 <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  {profileData?.pictureUrl && (
+                  {isValidUrl(profileData?.pictureUrl) && (
                     <button 
                       className="p-2 rounded-full bg-red-500 hover:bg-red-600 transition-all duration-300 transform hover:scale-110 hover:rotate-12 shadow-lg hover:shadow-red-500/50 group/delete"
                       onClick={handleDeletePicture}
@@ -701,7 +741,7 @@ export default function Profile() {
                 ) : (
                   <div className="flex items-center gap-2 group-hover/cv:animate-pulse">
                     <FileText className="w-5 h-5" />
-                    <span>{profileData?.cvUrl ? "Replace CV" : "Upload CV"}</span>
+                    <span>{isValidUrl(profileData?.cvUrl) ? "Replace CV" : "Upload CV"}</span>
                   </div>
                 )}
               </button>
@@ -869,10 +909,10 @@ export default function Profile() {
                         <FileText className="w-5 h-5 text-blue-400 mt-0.5 mr-2" />
                         <div>
                           <p className="text-sm text-gray-400">CV Status</p>
-                          <p className="text-white">{profileData.cvUrl ? "Uploaded" : "Not uploaded"}</p>
+                          <p className="text-white">{isValidUrl(profileData.cvUrl) ? "Uploaded" : "Not uploaded"}</p>
                         </div>
                       </div>
-                      {profileData && profileData.cvUrl && (
+                      {profileData && isValidUrl(profileData.cvUrl) && (
                         <div className="mt-2 flex space-x-4">
                           <a 
                             href={profileData.cvUrl}

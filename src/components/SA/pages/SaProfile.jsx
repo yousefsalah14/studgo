@@ -54,7 +54,9 @@ export default function SaProfile() {
         const updatedValues = { ...values, pictureUrl: picturePath };
 
         const response = await axiosInstance().post("/sa/update-profile", updatedValues);
-        if (response.data) {
+        if (response.data?.isSuccess) {
+          // Fetch fresh profile data and update localStorage
+          await updateStoredProfile();
           toast.success("Profile updated successfully!");
         }
       } catch (error) {
@@ -66,46 +68,47 @@ export default function SaProfile() {
     },
   });
 
-  // Fetch profile data
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      try {
-        const response = await axiosInstance().get("/sa/profile");
-        console.log("Profile API Response:", response.data);
-        if (response.data?.isSuccess && response.data?.data) {
-          const profileData = response.data.data;
-          
-          // Update formik values with fetched data
-          formik.setValues({
-            name: profileData.name || "",
-            biography: profileData.biography || "",
-            foundingDate: profileData.foundingDate ? new Date(profileData.foundingDate).toISOString().split('T')[0] : "",
-            pictureUrl: profileData.pictureUrl || "",
-            joinFormUrl: profileData.joinFormUrl || "",
-            websiteUrl: profileData.websiteUrl || "",
-            contactEmail: profileData.contactEmail || currentUser?.email || "",
-            contactPhoneNumber: profileData.contactPhoneNumber || "",
-            address: profileData.address || "",
-            longitude: profileData.longitude || "0",
-            latitude: profileData.latitude || "0",
-            university: profileData.university || "",
-            faculty: profileData.faculty || ""
-          });
-
-          // Set preview URL if picture exists
-          if (profileData.pictureUrl) {
-            const fullPictureUrl = profileData.pictureUrl;
-            console.log("Setting preview URL:", fullPictureUrl);
-            setPreviewUrl(fullPictureUrl);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        toast.error("Failed to load profile data");
+  // Function to fetch and update stored profile
+  const updateStoredProfile = async () => {
+    try {
+      const response = await axiosInstance().get("/sa/profile");
+      if (response.data?.isSuccess) {
+        const profileData = response.data.data;
+        localStorage.setItem('saProfile', JSON.stringify(profileData));
       }
-    };
-    
-    fetchProfileData();
+    } catch (error) {
+      console.error("Error updating stored profile:", error);
+    }
+  };
+
+  // Load profile data from localStorage
+  useEffect(() => {
+    const storedProfile = localStorage.getItem('saProfile');
+    if (storedProfile) {
+      const profileData = JSON.parse(storedProfile);
+      
+      // Update formik values with stored data
+      formik.setValues({
+        name: profileData.name || "",
+        biography: profileData.biography || "",
+        foundingDate: profileData.foundingDate ? new Date(profileData.foundingDate).toISOString().split('T')[0] : "",
+        pictureUrl: profileData.pictureUrl || "",
+        joinFormUrl: profileData.joinFormUrl || "",
+        websiteUrl: profileData.websiteUrl || "",
+        contactEmail: profileData.contactEmail || currentUser?.email || "",
+        contactPhoneNumber: profileData.contactPhoneNumber || "",
+        address: profileData.address || "",
+        longitude: profileData.longitude || "0",
+        latitude: profileData.latitude || "0",
+        university: profileData.university || "",
+        faculty: profileData.faculty || ""
+      });
+
+      // Set preview URL if picture exists
+      if (profileData.pictureUrl) {
+        setPreviewUrl(profileData.pictureUrl);
+      }
+    }
   }, [currentUser]);
 
   // Handle picture upload
@@ -130,6 +133,8 @@ export default function SaProfile() {
 
       if (response.data?.isSuccess) {
         formik.setFieldValue("pictureUrl", response.data.data.pictureUrl);
+        // Update stored profile after successful picture upload
+        await updateStoredProfile();
         toast.success("Profile picture uploaded successfully!");
       }
     } catch (error) {

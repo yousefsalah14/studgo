@@ -23,6 +23,7 @@ import { toast } from "react-hot-toast";
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { Link } from "react-router-dom";
 
 // Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -705,12 +706,19 @@ function SaActivities() {
               </button>
             </div>
             <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">{selectedActivity.title}</h2>
-                  <p className="text-gray-400">{selectedActivity.studentActivityName}</p>
-                </div>
-                <div className="flex items-center gap-2">
+              {/* Header Section */}
+              <div className="mb-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <Link 
+                      to={`/student-activity/activities/${selectedActivity.id}`}
+                      className="text-2xl font-bold text-white hover:text-blue-400 transition-colors inline-flex items-center gap-2 mb-1"
+                    >
+                      {selectedActivity.title}
+                      <ChevronRight size={20} className="text-gray-400" />
+                    </Link>
+                    <p className="text-gray-400">{selectedActivity.studentActivityName}</p>
+                  </div>
                   <button
                     onClick={() => handleToggleActivity(selectedActivity.id)}
                     className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
@@ -738,7 +746,108 @@ function SaActivities() {
                       </>
                     )}
                   </button>
+                </div>
+              </div>
 
+              {/* Status and Category Tags */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  selectedActivity.isOpened ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+                }`}>
+                  {selectedActivity.isOpened ? 'Open' : 'Closed'}
+                </span>
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-900/30 text-purple-400">
+                  {selectedActivity.activityCategory}
+                </span>
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-900/30 text-blue-400">
+                  {selectedActivity.activityType}
+                </span>
+              </div>
+
+              {/* Description */}
+              <div className="bg-gray-700/30 rounded-lg p-4 mb-6">
+                <h4 className="text-sm font-medium text-gray-300 mb-2">Description</h4>
+                <p className="text-gray-300">{selectedActivity.description}</p>
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-gray-300">Time & Date</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Calendar size={16} className="text-blue-400" />
+                      <span>Starts: {new Date(selectedActivity.startDate).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Calendar size={16} className="text-red-400" />
+                      <span>Ends: {new Date(selectedActivity.endDate).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Calendar size={16} className="text-yellow-400" />
+                      <span>Registration Deadline: {new Date(selectedActivity.deadlineDate).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-gray-300">Location & Capacity</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <MapPin size={16} className="text-green-400" />
+                      <span>{selectedActivity.address || 'Location details will be provided'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Users size={16} className="text-purple-400" />
+                      <span>{selectedActivity.numberOfSeats} seats available</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Resources */}
+              {(selectedActivity.posterUrl || selectedActivity.agendaUrl) && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-300 mb-3">Available Resources</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {selectedActivity.posterUrl && (
+                      <a
+                        href={selectedActivity.posterUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+                      >
+                        <Image size={16} />
+                        <span>View Poster</span>
+                      </a>
+                    )}
+                    {selectedActivity.agendaUrl && (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={selectedActivity.agendaUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+                        >
+                          <FileText size={16} />
+                          <span>View Agenda</span>
+                        </a>
+                        <button
+                          onClick={() => setShowDeleteAgendaModal(true)}
+                          className="p-2 text-red-400 hover:text-red-300 transition-colors"
+                          title="Delete Agenda"
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="border-t border-gray-700 pt-6 mt-6">
+                <div className="flex flex-wrap items-center gap-3">
                   {!selectedActivity.agendaUrl && (
                     <button
                       onClick={() => handleGenerateAgenda(selectedActivity.id)}
@@ -778,83 +887,24 @@ function SaActivities() {
                     )}
                   </label>
 
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    selectedActivity.isOpened ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
-                  }`}>
-                    {selectedActivity.isOpened ? 'Open' : 'Closed'}
-                  </span>
-                </div>
-              </div>
+                  <div className="flex-grow"></div>
 
-              <p className="text-gray-300 mb-6">{selectedActivity.description}</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Calendar size={16} />
-                    <span>Start: {new Date(selectedActivity.startDate).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Calendar size={16} />
-                    <span>End: {new Date(selectedActivity.endDate).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Calendar size={16} />
-                    <span>Deadline: {new Date(selectedActivity.deadlineDate).toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <MapPin size={16} />
-                    <span>{selectedActivity.address}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Users size={16} />
-                    <span>Seats: {selectedActivity.numberOfSeats}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-900/30 text-purple-400">
-                      {selectedActivity.activityCategory}
-                    </span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400">
-                      {selectedActivity.activityType}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4">
-                {selectedActivity.posterUrl && (
-                  <a
-                    href={selectedActivity.posterUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  <button
+                    onClick={() => openEditModal(selectedActivity)}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg flex items-center gap-2 transition-colors"
                   >
-                    <Image size={16} />
-                    <span>View Poster</span>
-                  </a>
-                )}
-                {selectedActivity.agendaUrl && (
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={selectedActivity.agendaUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                    >
-                      <FileText size={16} />
-                      <span>View Agenda</span>
-                    </a>
-                    <button
-                      onClick={() => setShowDeleteAgendaModal(true)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                    >
-                      <Trash size={16} />
-                      <span>Delete Agenda</span>
-                    </button>
-                  </div>
-                )}
+                    <Edit size={16} />
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    onClick={() => openDeleteModal(selectedActivity)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg flex items-center gap-2 transition-colors"
+                  >
+                    <Trash size={16} />
+                    <span>Delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -863,9 +913,9 @@ function SaActivities() {
 
       {/* Add Activity Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-4xl">
-            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg w-full max-w-4xl my-8">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
               <h3 className="text-xl font-semibold text-white">Add New Activity</h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -874,7 +924,7 @@ function SaActivities() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleAddActivity} className="p-6">
+            <form onSubmit={handleAddActivity} className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>

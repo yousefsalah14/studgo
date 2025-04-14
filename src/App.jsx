@@ -14,6 +14,7 @@ import StudentActivityDetails from './components/student/pages/StudentActivityDe
 import SAHome from './components/SA/pages/SAHome.jsx';
 import SaTeams from './components/SA/pages/SaTeams.jsx';
 import SaActivities from './components/SA/pages/SaActivities.jsx';
+import ActivityDetails from './components/SA/pages/ActivityDetails.jsx';
 import SaFollowers from './components/SA/pages/SaFollowers.jsx';
 import SaReports from './components/SA/pages/SaReports.jsx';
 import SaProfile from './components/SA/pages/SaProfile.jsx';
@@ -28,7 +29,6 @@ import Workshops from './components/student/pages/Workshops.jsx';
 import Calendar from './components/student/pages/Calendar.jsx';
 import Internships from './components/student/pages/Internships.jsx';
 import WorkshopDetails from './components/student/pages/WorkshopDetails';
-import ActivityDetails from './components/student/pages/ActivityDetails';
 import GoogleCallback from './components/Auth/GoogleCallback';
 import { useEffect } from 'react';
 
@@ -78,6 +78,7 @@ function App() {
       { index: true, element: <SaDashboard /> },
       { path: 'dashboard', element: <SaDashboard /> },
       { path: 'activities', element: <SaActivities /> },
+      { path: 'activities/:id', element: <ActivityDetails /> },
       { path: 'teams', element: <SaTeams /> },
       { path: 'followers', element: <SaFollowers /> },
       { path: 'reports', element: <SaReports /> },

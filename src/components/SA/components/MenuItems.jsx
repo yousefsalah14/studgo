@@ -1,7 +1,6 @@
 import { 
   Home,
   Users,
-  FileText,
   Activity,
   UserPlus,
 } from "lucide-react";
@@ -31,11 +30,6 @@ function MenuItems({ isCollapsed, pathname }) {
       title: "Followers",
       icon: <UserPlus size={20} />,
       path: "/student-activity/followers",
-    },
-    {
-      title: "Reports",
-      icon: <FileText size={20} />,
-      path: "/student-activity/reports",
     },
   ];
 

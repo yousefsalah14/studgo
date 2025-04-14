@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactApexChart from 'react-apexcharts';
 
-const DistributionChart = ({ isLoading, statistics }) => {
+const ActivityTypeChart = ({ isLoading, statistics }) => {
   const [chartData, setChartData] = useState({
     series: [0, 0, 0],
     options: {
@@ -14,8 +14,8 @@ const DistributionChart = ({ isLoading, statistics }) => {
       theme: {
         mode: 'dark',
       },
-      labels: ['Events', 'Workshops', 'Courses'],
-      colors: ['#3b82f6', '#10b981', '#f59e0b'],
+      labels: ['Technical', 'Non-Technical', 'Mixed'],
+      colors: ['#6366f1', '#ec4899', '#8b5cf6'],
       plotOptions: {
         pie: {
           donut: {
@@ -85,9 +85,9 @@ const DistributionChart = ({ isLoading, statistics }) => {
       setChartData(prev => ({
         ...prev,
         series: [
-          statistics.numOfEventActivites,
-          statistics.numOfWorkshopActivites,
-          statistics.numOfCourseActivites
+          statistics.numOfTechnicalActivites,
+          statistics.numOfNonTechnicalActivites,
+          statistics.numOfMixedActivites
         ]
       }));
     }
@@ -111,4 +111,4 @@ const DistributionChart = ({ isLoading, statistics }) => {
   );
 };
 
-export default DistributionChart;
+export default ActivityTypeChart; 

@@ -17,8 +17,8 @@ function SearchAndFilter({
   };
 
   // Updated categories to match the correct options
-  const categories = ['All', 'Technical', 'NonTechnical'];
-  const activityTypes = ['All', 'Workshop', 'Event'];
+  const categories = ['All', 'Technical', 'NonTechnical', 'Mixed'];
+  const activityTypes = ['All', 'Workshop', 'Event', 'Course'];
 
   return (
     <div className="bg-gray-800 rounded-lg p-4">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { 
   Calendar as CalendarIcon,
   Clock,
@@ -72,10 +72,10 @@ const shakeAnimation = `
 const getEventImage = (activity) => {
   if (activity.activityType === "Workshop") {
     return "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
-  } else if (activity.activityType === "Event" && activity.activityCategory === "Technical") {
+  } else if (activity.activityType === "Event") {
     return "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
-  } else if (activity.activityType === "Event" && activity.activityCategory === "NonTechnical") {
-    return "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
+  } else if (activity.activityType === "Course") {
+    return "https://images.unsplash.com/photo-1501504905252-473c47e087f8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
   } else {
     return "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80";
   }
@@ -245,27 +245,23 @@ const FilterDropdown = ({ showFilters, currentDate, onFilterChange }) => {
 
 // Event Details Modal Component
 const EventDetailsModal = ({ event, onClose }) => {
+  const navigate = useNavigate();
+  
   if (!event) return null;
   
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="relative">
-          <img 
-            src={getEventImage(event)} 
-            alt={event.title}
-            className="w-full h-48 object-cover rounded-t-2xl"
-          />
-          <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 bg-gray-900/70 rounded-full p-2 hover:bg-gray-900 transition-all duration-200"
-          >
-            <X className="w-5 h-5 text-white" />
-          </button>
-        </div>
-        
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-gray-800 rounded-xl overflow-hidden shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-white mb-2">{event.title}</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-white">{event.title}</h2>
+            <button 
+              onClick={onClose}
+              className="p-2 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
           
           <div className="flex items-center gap-2 text-blue-400 mb-4">
             <Tag className="w-4 h-4" />
@@ -298,56 +294,21 @@ const EventDetailsModal = ({ event, onClose }) => {
                 <div className="text-white">{event.location}</div>
               </div>
             )}
-            
-            {event.address && (
-              <div className="bg-gray-700/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-gray-300 mb-2">
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-sm font-medium">Address</span>
-                </div>
-                <div className="text-white">{event.address}</div>
-              </div>
-            )}
-            
-            {event.organizer && (
-              <div className="bg-gray-700/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-gray-300 mb-2">
-                  <User className="w-4 h-4" />
-                  <span className="text-sm font-medium">Organizer</span>
-                </div>
-                <div className="text-white">{event.organizer}</div>
-              </div>
-            )}
-            
-            {event.venue && (
-              <div className="bg-gray-700/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-gray-300 mb-2">
-                  <Building className="w-4 h-4" />
-                  <span className="text-sm font-medium">Venue</span>
-                </div>
-                <div className="text-white">{event.venue}</div>
-              </div>
-            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-gray-300 text-sm mb-4">
+            <span>by</span>
+            <Link to={`/studentactivity/${event.studentActivityId}`} className="text-blue-400 hover:text-blue-300">
+              {event.studentActivityName}
+            </Link>
           </div>
           
-          {event.description && (
-            <div className="mb-6">
-              <div className="flex items-center gap-2 text-gray-300 mb-2">
-                <Info className="w-4 h-4" />
-                <span className="text-sm font-medium">Description</span>
-              </div>
-              <div className="text-white bg-gray-700/30 rounded-lg p-4">
-                {event.description}
-              </div>
-            </div>
-          )}
-          
-          <div className="flex justify-end">
-            <button 
-              onClick={onClose}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-200"
+          <div className="flex justify-end gap-4">
+            <button
+              onClick={() => navigate(`/activities/${event.id}`)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
             >
-              Close
+              View Details
             </button>
           </div>
         </div>

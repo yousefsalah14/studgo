@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   Clock, 
   MapPin, 
@@ -34,6 +34,7 @@ function ActivityCard({ activity, onApply, isApplied }) {
     agendaUrl,
     latitude,
     longitude,
+    studentActivityName,
   } = activity;
 
   // Format dates
@@ -123,13 +124,19 @@ function ActivityCard({ activity, onApply, isApplied }) {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2">
               <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full">
                 {formatCategory(activityCategory)}
               </span>
               <span className="px-3 py-1 bg-purple-500/20 text-purple-400 text-sm rounded-full">
                 {activityType}
               </span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <span>by</span>
+              <Link to={`/studentactivity/${activity.studentActivityId}`} className="text-blue-400 hover:text-blue-300">
+                {studentActivityName}
+              </Link>
             </div>
           </div>
         </div>

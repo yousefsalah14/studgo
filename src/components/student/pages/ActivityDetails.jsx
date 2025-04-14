@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Clock, 
@@ -333,7 +333,12 @@ function ActivityDetails() {
               )}
             </div>
             <h1 className="text-4xl font-bold text-white mb-2">{activity.title}</h1>
-            
+            <div className="flex items-center gap-2 text-gray-300 text-sm mb-4">
+              <span>by</span>
+              <Link to={`/studentactivity/${activity.studentActivityId}`} className="text-blue-400 hover:text-blue-300">
+                {activity.studentActivityName}
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -357,6 +362,12 @@ function ActivityDetails() {
                     <div>
                       <p className="text-sm font-medium text-gray-400">Date</p>
                       <p className="text-base text-white">{formatDate(activity.startDate)} - {formatDate(activity.endDate)}</p>
+                      <div className="flex items-center gap-2 text-gray-300 text-sm mt-2">
+                        <span>by</span>
+                        <Link to={`/studentactivity/${activity.studentActivityId}`} className="text-blue-400 hover:text-blue-300">
+                          {activity.studentActivityName}
+                        </Link>
+                      </div>
                     </div>
                   </div>
                   

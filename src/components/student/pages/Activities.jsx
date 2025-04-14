@@ -50,53 +50,6 @@ function Activities() {
     }
   );
 
-  // Check applied status for each activity
-  const checkAppliedStatus = async (activityId) => {
-    try {
-      const response = await axiosInstance().get("/activity/student/applied", {
-        params: { activityId: activityId }
-      });
-      
-      // If the API call was successful (status 200), it means the user has applied
-      // The API returns a 200 status code when the user has applied to the activity
-      return true;
-    } catch (error) {
-      // If the API returns a 404, it means the user has not applied
-      if (error.response && error.response.status === 404) {
-        return false;
-      }
-      
-      return false;
-    }
-  };
-
-  // Update applied status for all activities when activities data changes
-  useEffect(() => {
-    const updateAppliedStatus = async () => {
-      if (!activitiesData.data || activitiesData.data.length === 0) return;
-      
-      // Only check if user is logged in
-      if (!localStorage.getItem('accessToken')) {
-        setAppliedActivityIds([]);
-        return;
-      }
-      
-      const appliedIds = [];
-      
-      // Check each activity's applied status
-      for (const activity of activitiesData.data) {
-        const isApplied = await checkAppliedStatus(activity.id);
-        if (isApplied) {
-          appliedIds.push(activity.id);
-        }
-      }
-      
-      setAppliedActivityIds(appliedIds);
-    };
-    
-    updateAppliedStatus();
-  }, [activitiesData.data]);
-
   const isLoading = statesLoading || activitiesLoading;
 
   const filteredActivities = activitiesData.data;

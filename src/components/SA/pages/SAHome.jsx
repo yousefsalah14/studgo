@@ -41,7 +41,7 @@ function SAHome() {
     }
 
     return (
-        <div className="h-screen flex flex-col md:flex-row bg-gray-900 overflow-hidden">
+        <div className="h-screen flex flex-col md:flex-row bg-gray-900">
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
                 <div 
@@ -61,7 +61,7 @@ function SAHome() {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 w-full md:pl-0 flex flex-col">
+            <main className="flex-1 w-full md:pl-0 flex flex-col overflow-hidden">
                 {/* Mobile Menu Toggle - Visible only on mobile */}
                 {isMobile && !isMobileMenuOpen && (
                     <button
@@ -74,7 +74,7 @@ function SAHome() {
                 )}
                 
                 {/* Content Area */}
-                <div className="p-4 md:p-6 overflow-y-auto flex-1 h-screen">
+                <div className="p-4 md:p-6 overflow-y-auto flex-1">
                     <Outlet />
                 </div>
             </main>

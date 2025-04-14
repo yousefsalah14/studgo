@@ -186,7 +186,7 @@ function ActivitySADetails() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => navigate('/sa/activities')}
+          onClick={() => navigate('/activities')}
           className="flex items-center text-gray-400 hover:text-white mb-4 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />

@@ -171,7 +171,7 @@ function ActivitySADetails() {
       <div className="flex flex-col items-center justify-center min-h-screen">
         <h2 className="text-2xl font-bold text-white mb-4">Activity not found</h2>
         <button
-          onClick={() => navigate('/activities')}
+          onClick={() => navigate('/student-activity/activities')}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />
@@ -186,7 +186,7 @@ function ActivitySADetails() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => navigate('/activities')}
+          onClick={() => navigate('/student-activity/activities')}
           className="flex items-center text-gray-400 hover:text-white mb-4 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />

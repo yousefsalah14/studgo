@@ -14,7 +14,7 @@ import StudentActivityDetails from './components/student/pages/StudentActivityDe
 import SAHome from './components/SA/pages/SAHome.jsx';
 import SaTeams from './components/SA/pages/SaTeams.jsx';
 import SaActivities from './components/SA/pages/SaActivities.jsx';
-import ActivityDetails from './components/SA/pages/ActivityDetails.jsx';
+import ActivitySADetails from './components/SA/pages/ActivitySADetails.jsx';
 import SaFollowers from './components/SA/pages/SaFollowers.jsx';
 import SaReports from './components/SA/pages/SaReports.jsx';
 import SaProfile from './components/SA/pages/SaProfile.jsx';
@@ -26,6 +26,7 @@ import ResetCode from './components/Auth/RestCode.jsx';
 import Profile from './components/student/pages/profile.jsx';
 import Activities from './components/student/pages/Activities.jsx';
 import Workshops from './components/student/pages/Workshops.jsx';
+import ActivityDetails from './components/student/pages/ActivityDetails.jsx';
 import Calendar from './components/student/pages/Calendar.jsx';
 import Internships from './components/student/pages/Internships.jsx';
 import WorkshopDetails from './components/student/pages/WorkshopDetails';
@@ -78,7 +79,7 @@ function App() {
       { index: true, element: <SaDashboard /> },
       { path: 'dashboard', element: <SaDashboard /> },
       { path: 'activities', element: <SaActivities /> },
-      { path: 'activities/:id', element: <ActivityDetails /> },
+      { path: 'activities/:id', element: <ActivitySADetails /> },
       { path: 'teams', element: <SaTeams /> },
       { path: 'followers', element: <SaFollowers /> },
       { path: 'reports', element: <SaReports /> },

@@ -23,7 +23,7 @@ import { toast } from "react-hot-toast";
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-function ActivityDetails() {
+function ActivitySADetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activity, setActivity] = useState(null);
@@ -618,4 +618,4 @@ function ActivityDetails() {
   );
 }
 
-export default ActivityDetails; 
+export default ActivitySADetails; 

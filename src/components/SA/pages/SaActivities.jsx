@@ -863,9 +863,9 @@ function SaActivities() {
 
       {/* Add Activity Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-4xl">
-            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg w-full max-w-4xl my-8">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
               <h3 className="text-xl font-semibold text-white">Add New Activity</h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -874,7 +874,7 @@ function SaActivities() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleAddActivity} className="p-6">
+            <form onSubmit={handleAddActivity} className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>

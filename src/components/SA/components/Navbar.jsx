@@ -112,41 +112,41 @@ function Navbar({ isMobile, toggleMobileMenu, isMobileMenuOpen }) {
 
   return (
     <nav className="fixed top-0 right-0 left-0 md:left-auto z-40 h-16 md:h-20 backdrop-blur-md bg-gray-900/95 border-b border-gray-800/80">
-      <div className="h-full max-w-screen-2xl mx-auto px-4 flex items-center justify-between">
+      <div className="h-full max-w-screen-2xl mx-auto px-2 sm:px-4 flex items-center justify-between">
         {/* Left Section: Mobile Menu Toggle + Search */}
-        <div className="flex items-center">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           {/* Mobile Menu Toggle */}
           {isMobile && (
             <button
               onClick={toggleMobileMenu}
-              className="mr-3 text-gray-400 hover:text-white p-2 rounded-md hover:bg-gray-800/70 transition-colors"
+              className="text-gray-400 hover:text-white p-1.5 sm:p-2 rounded-md hover:bg-gray-800/70 transition-colors"
               aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             >
-              {isMobileMenuOpen ? <X size={24} /> : <MenuIcon size={24} />}
+              {isMobileMenuOpen ? <X size={20} /> : <MenuIcon size={20} />}
             </button>
           )}
 
           {/* Search */}
           <div
             ref={searchRef}
-            className={`relative ${isMobile ? "w-full max-w-[180px] sm:max-w-xs" : "w-64 lg:w-80"}`}
+            className={`relative ${isMobile ? "w-full max-w-[140px] sm:max-w-[180px]" : "w-56 sm:w-64 lg:w-80"}`}
           >
             <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
                 placeholder="Search..."
-                className={`w-full bg-gray-800/70 text-white px-4 py-2 pl-10 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full bg-gray-800/70 text-white px-3 sm:px-4 py-1.5 sm:py-2 pl-8 sm:pl-10 rounded-lg focus:outline-none focus:ring-2 transition-all ${
                   isSearchFocused
                     ? "focus:ring-blue-500 focus:bg-gray-700/90"
                     : "focus:ring-gray-700"
                 }`}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.value)}
                 onFocus={() => setIsSearchFocused(true)}
               />
               <Search
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={16}
+                className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
               />
             </form>
           </div>
@@ -154,52 +154,52 @@ function Navbar({ isMobile, toggleMobileMenu, isMobileMenuOpen }) {
 
         {/* Center Section: Quick Links (Hidden on Mobile) */}
         {!isMobile && (
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
             <Link 
               to="/student-activity/calendar" 
-              className="flex items-center space-x-1 px-3 py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
+              className="flex items-center space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
             >
-              <Calendar size={18} />
+              <Calendar size={16} />
               <span className="text-sm font-medium">Calendar</span>
             </Link>
             <Link 
               to="/student-activity/messages" 
-              className="flex items-center space-x-1 px-3 py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
+              className="flex items-center space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
             >
-              <MessageSquare size={18} />
+              <MessageSquare size={16} />
               <span className="text-sm font-medium">Messages</span>
             </Link>
             <Link 
               to="/student-activity/help" 
-              className="flex items-center space-x-1 px-3 py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
+              className="flex items-center space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-300 hover:text-white rounded-md hover:bg-gray-800/70 transition-colors"
             >
-              <HelpCircle size={18} />
+              <HelpCircle size={16} />
               <span className="text-sm font-medium">Help</span>
             </Link>
           </div>
         )}
 
         {/* Right Section: Actions */}
-        <div className="flex items-center space-x-1 md:space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
+            className="p-1.5 sm:p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
             aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           {/* Notifications */}
           <div ref={notificationsRef} className="relative">
             <button
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-              className="relative p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
+              className="relative p-1.5 sm:p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
               aria-label="Notifications"
             >
-              <Bell size={20} />
+              <Bell size={18} />
               {unreadCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                <span className="absolute top-0 right-0 w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-[10px] sm:text-xs font-bold">
                   {unreadCount}
                 </span>
               )}
@@ -207,7 +207,7 @@ function Navbar({ isMobile, toggleMobileMenu, isMobileMenuOpen }) {
 
             {/* Notifications Dropdown */}
             {isNotificationsOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 border border-gray-700/80">
+              <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-gray-800/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 border border-gray-700/80">
                 <div className="p-3 border-b border-gray-700/80 flex justify-between items-center">
                   <h3 className="text-white font-medium">Notifications</h3>
                   {unreadCount > 0 && (
@@ -271,10 +271,10 @@ function Navbar({ isMobile, toggleMobileMenu, isMobileMenuOpen }) {
           <div ref={profileRef} className="relative">
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center space-x-2 p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
+              className="flex items-center space-x-1 sm:space-x-2 p-1 sm:p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800/70 transition-colors"
               aria-label="Profile menu"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium overflow-hidden ring-2 ring-gray-700/50">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium overflow-hidden ring-2 ring-gray-700/50">
                 {authStore.currentUser?.photoURL ? (
                   <img
                     src={authStore.currentUser.photoURL}
@@ -282,22 +282,22 @@ function Navbar({ isMobile, toggleMobileMenu, isMobileMenuOpen }) {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <User size={18} />
+                  <User size={16} />
                 )}
               </div>
               {!isMobile && (
                 <>
-                  <span className="text-sm font-medium text-white max-w-[100px] truncate">
+                  <span className="text-sm font-medium text-white max-w-[80px] sm:max-w-[100px] truncate">
                     {authStore.currentUser?.displayName || "User"}
                   </span>
-                  <ChevronDown size={16} />
+                  <ChevronDown size={14} />
                 </>
               )}
             </button>
 
             {/* Profile Dropdown */}
             {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-60 bg-gray-800/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 border border-gray-700/80">
+              <div className="absolute right-0 mt-2 w-56 sm:w-60 bg-gray-800/95 backdrop-blur-md rounded-lg shadow-lg overflow-hidden z-50 border border-gray-700/80">
                 <div className="p-4 border-b border-gray-700/80">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium overflow-hidden">

@@ -6,10 +6,22 @@ const DistributionChart = ({ isLoading, statistics }) => {
     series: [0, 0, 0],
     options: {
       chart: {
-        width: 380,
         type: 'donut',
         background: 'transparent',
         fontFamily: 'Inter, sans-serif',
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800,
+          animateGradually: {
+            enabled: true,
+            delay: 150
+          },
+          dynamicAnimation: {
+            enabled: true,
+            speed: 350
+          }
+        }
       },
       theme: {
         mode: 'dark',
@@ -19,14 +31,14 @@ const DistributionChart = ({ isLoading, statistics }) => {
       plotOptions: {
         pie: {
           donut: {
-            size: '55%',
+            size: '65%',
             labels: {
               show: true,
               total: {
                 show: true,
                 showAlways: true,
-                label: 'Total Activities',
-                fontSize: '16px',
+                label: 'Total',
+                fontSize: '14px',
                 fontWeight: 600,
                 color: '#fff',
                 formatter: function (w) {
@@ -35,9 +47,10 @@ const DistributionChart = ({ isLoading, statistics }) => {
               },
               value: {
                 show: true,
-                fontSize: '22px',
+                fontSize: '18px',
                 fontWeight: 700,
                 color: '#fff',
+                offsetY: 0
               }
             }
           }
@@ -50,24 +63,25 @@ const DistributionChart = ({ isLoading, statistics }) => {
         position: 'bottom',
         horizontalAlign: 'center',
         labels: {
-          colors: '#fff'
+          colors: '#fff',
+          useSeriesColors: false
         },
         markers: {
-          width: 12,
-          height: 12,
+          width: 8,
+          height: 8,
           strokeWidth: 0,
-          radius: 12,
+          radius: 8,
         },
         itemMargin: {
-          horizontal: 10,
-          vertical: 5
+          horizontal: 8,
+          vertical: 4
         }
       },
       responsive: [{
         breakpoint: 480,
         options: {
           chart: {
-            width: 280
+            width: '100%'
           },
           legend: {
             position: 'bottom'
@@ -95,17 +109,18 @@ const DistributionChart = ({ isLoading, statistics }) => {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse w-full h-full bg-gray-700 rounded-xl"></div>
+      <div className="animate-pulse w-full h-full bg-gray-700/50 rounded-lg"></div>
     );
   }
 
   return (
-    <div id="chart" className="w-full h-full flex justify-center items-center">
+    <div className="w-full h-full">
       <ReactApexChart 
         options={chartData.options} 
         series={chartData.series} 
         type="donut" 
-        height={350} 
+        height="100%"
+        width="100%"
       />
     </div>
   );

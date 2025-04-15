@@ -694,9 +694,9 @@ function SaActivities() {
 
       {/* Activity Details Modal */}
       {showDetailsModal && selectedActivity && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-2xl">
-            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
               <h3 className="text-xl font-semibold text-white">Activity Details</h3>
               <button
                 onClick={() => setShowDetailsModal(false)}
@@ -705,7 +705,7 @@ function SaActivities() {
                 <X size={20} />
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Header Section */}
               <div className="mb-6">
                 <div className="flex justify-between items-start">
@@ -913,8 +913,8 @@ function SaActivities() {
 
       {/* Add Activity Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-gray-800 rounded-lg w-full max-w-4xl my-8">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg w-full max-w-4xl my-4 sm:my-8">
             <div className="flex justify-between items-center p-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
               <h3 className="text-xl font-semibold text-white">Add New Activity</h3>
               <button
@@ -924,8 +924,8 @@ function SaActivities() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleAddActivity} className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <form onSubmit={handleAddActivity} className="p-4 sm:p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
                   <input
@@ -1070,9 +1070,9 @@ function SaActivities() {
 
       {/* Edit Activity Modal */}
       {isEditModalOpen && currentActivity && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-2xl">
-            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
               <h3 className="text-xl font-semibold text-white">Edit Activity</h3>
               <button
                 onClick={() => setIsEditModalOpen(false)}
@@ -1081,8 +1081,8 @@ function SaActivities() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleEditActivity} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <form onSubmit={handleEditActivity} className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
                   <input
@@ -1228,7 +1228,7 @@ function SaActivities() {
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4">
           <div className="bg-gray-800 rounded-lg w-full max-w-md">
             <div className="p-4 border-b border-gray-700">
               <h3 className="text-lg font-medium text-white">Confirm Delete</h3>
@@ -1258,15 +1258,15 @@ function SaActivities() {
 
       {/* Add the Delete Agenda Confirmation Modal */}
       {showDeleteAgendaModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4">
           <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="p-6">
-              <div className="flex flex-col items-center text-center mb-6">
-                <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mb-4">
-                  <Trash size={32} className="text-red-400" />
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col items-center text-center mb-4 sm:mb-6">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-900/30 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                  <Trash size={24} className="sm:size-8 text-red-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Delete Agenda</h3>
-                <p className="text-gray-400">
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Delete Agenda</h3>
+                <p className="text-gray-400 text-sm sm:text-base">
                   Are you sure you want to delete this agenda? This action cannot be undone.
                 </p>
               </div>

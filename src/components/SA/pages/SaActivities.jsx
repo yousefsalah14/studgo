@@ -33,8 +33,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-function LocationMarker({ onLocationSelect }) {
-  const [position, setPosition] = useState(null);
+function LocationMarker({ onLocationSelect, initialPosition }) {
+  const [position, setPosition] = useState(initialPosition || null);
   const map = useMapEvents({
     click(e) {
       setPosition(e.latlng);
@@ -42,7 +42,16 @@ function LocationMarker({ onLocationSelect }) {
     },
   });
 
-  return position === null ? null : (
+  // Update position when initialPosition changes
+  useEffect(() => {
+    if (initialPosition && Array.isArray(initialPosition) && initialPosition.length === 2) {
+      setPosition(initialPosition);
+    }
+  }, [initialPosition]);
+
+  if (!position) return null;
+
+  return (
     <Marker
       position={position}
       draggable={true}
@@ -80,7 +89,8 @@ function SaActivities() {
     deadlineDate: "",
     numberOfSeats: 0,
     activityType: "Workshop",
-    activityCategory: "Technical"
+    activityCategory: "Technical",
+    address: ""
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -91,6 +101,7 @@ function SaActivities() {
   const [isDeletingAgenda, setIsDeletingAgenda] = useState(false);
   const [showDeleteAgendaModal, setShowDeleteAgendaModal] = useState(false);
   const [mapCenter, setMapCenter] = useState([30.0444, 31.2357]); // Default to Cairo coordinates
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   // Fetch activities from API
   useEffect(() => {
@@ -204,7 +215,8 @@ function SaActivities() {
       deadlineDate: "",
       numberOfSeats: 0,
       activityType: "Workshop",
-      activityCategory: "Technical"
+      activityCategory: "Technical",
+      address: ""
     });
     setIsAddModalOpen(true);
   };
@@ -222,7 +234,8 @@ function SaActivities() {
       deadlineDate: new Date(activity.deadlineDate).toISOString().slice(0, 16),
       numberOfSeats: activity.numberOfSeats,
       activityType: activity.activityType,
-      activityCategory: activity.activityCategory
+      activityCategory: activity.activityCategory,
+      address: activity.address
     });
     setIsEditModalOpen(true);
   };
@@ -248,7 +261,7 @@ function SaActivities() {
         numberOfSeats: parseInt(formData.numberOfSeats),
         longitude: parseFloat(formData.longitude),
         latitude: parseFloat(formData.latitude),
-        address: "" // Add empty address
+        address: formData.address
       };
 
       const response = await axiosInstance().post("/activity", formattedData);
@@ -266,7 +279,8 @@ function SaActivities() {
           deadlineDate: "",
           numberOfSeats: 0,
           activityType: "Workshop",
-          activityCategory: "Technical"
+          activityCategory: "Technical",
+          address: ""
         });
         // Refresh activities list
         fetchActivities();
@@ -295,7 +309,7 @@ function SaActivities() {
         numberOfSeats: parseInt(formData.numberOfSeats),
         longitude: parseFloat(formData.longitude),
         latitude: parseFloat(formData.latitude),
-        address: "" // Add empty address
+        address: formData.address
       };
 
       const response = await axiosInstance().put(`/activity/${currentActivity.id}`, formattedData);
@@ -492,12 +506,37 @@ function SaActivities() {
     }
   };
 
-  const handleLocationSelect = (latlng) => {
+  // Add reverse geocoding function
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      setIsGeocoding(true);
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      );
+      const data = await response.json();
+      
+      if (data && data.display_name) {
+        setFormData(prev => ({
+          ...prev,
+          address: data.display_name
+        }));
+      }
+    } catch (error) {
+      console.error('Error in reverse geocoding:', error);
+      toast.error('Failed to fetch address details');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  // Update handleLocationSelect to include reverse geocoding
+  const handleLocationSelect = async (latlng) => {
     setFormData(prev => ({
       ...prev,
       latitude: latlng.lat,
       longitude: latlng.lng
     }));
+    await reverseGeocode(latlng.lat, latlng.lng);
   };
 
   return (
@@ -1027,7 +1066,10 @@ function SaActivities() {
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     />
-                    <LocationMarker onLocationSelect={handleLocationSelect} />
+                    <LocationMarker 
+                      onLocationSelect={handleLocationSelect} 
+                      initialPosition={[formData.latitude, formData.longitude]}
+                    />
                   </MapContainer>
                 </div>
                 <div className="mt-2 text-sm text-gray-400">
@@ -1035,6 +1077,27 @@ function SaActivities() {
                 </div>
                 <div className="mt-2 text-sm text-gray-400">
                   Selected Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                </div>
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Address</label>
+                  <div className="relative">
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      placeholder="Enter your full address or select a location on the map"
+                      rows={2}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    {isGeocoding && (
+                      <div className="absolute right-3 top-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Click on the map to automatically fill the address
+                  </p>
                 </div>
               </div>
 
@@ -1184,7 +1247,10 @@ function SaActivities() {
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     />
-                    <LocationMarker onLocationSelect={handleLocationSelect} />
+                    <LocationMarker 
+                      onLocationSelect={handleLocationSelect} 
+                      initialPosition={[formData.latitude, formData.longitude]}
+                    />
                   </MapContainer>
                 </div>
                 <div className="mt-2 text-sm text-gray-400">
@@ -1192,6 +1258,27 @@ function SaActivities() {
                 </div>
                 <div className="mt-2 text-sm text-gray-400">
                   Selected Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                </div>
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Address</label>
+                  <div className="relative">
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      placeholder="Enter your full address or select a location on the map"
+                      rows={2}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    {isGeocoding && (
+                      <div className="absolute right-3 top-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Click on the map to automatically fill the address
+                  </p>
                 </div>
               </div>
 

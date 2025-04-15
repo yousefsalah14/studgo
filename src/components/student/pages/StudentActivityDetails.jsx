@@ -3,12 +3,13 @@ import React, { useEffect, useState } from 'react';
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useQuery } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "react-query";
 import { axiosInstance } from '../../../lib/axios';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { ArrowLeft, Mail, Phone, Globe, Calendar, MapPin, Users, Activity, ExternalLink, Share2, Check, Copy } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Globe, Calendar, MapPin, Users, Activity, ExternalLink, Share2, Check, Copy, Heart } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { toast } from 'react-hot-toast';
 
 // Import all components
 import HeaderSection from "../components/StudentActivity/Details/HeaderSection";
@@ -37,8 +38,46 @@ const StudentActivityDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showCopied, setShowCopied] = useState(false);
+  const queryClient = useQueryClient();
 
   const defaultImageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%230A84FF' rx='75'/%3E%3Ctext x='75' y='85' font-family='Arial' font-size='40' font-weight='bold' text-anchor='middle' fill='white'%3ESA%3C/text%3E%3C/svg%3E";
+
+  // Query to check if user is following
+  const { data: isFollowing, isLoading: isFollowingLoading, refetch: refetchFollowing } = useQuery(
+    ['isFollowing', id],
+    async () => {
+      try {
+        const { data } = await axiosInstance().get(`/sa/${id}/is-following`);
+        return true; // If we get a success response, user is following
+      } catch (error) {
+        if (error.response?.status === 400) {
+          return false; // If we get 400, user is not following
+        }
+        throw error; // Re-throw other errors
+      }
+    },
+    {
+      enabled: !!id,
+    }
+  );
+
+  // Mutation to toggle follow/unfollow
+  const toggleFollowMutation = useMutation(
+    async () => {
+      const { data } = await axiosInstance().post(`/sa/${id}/toggle-follow`);
+      return data.data;
+    },
+    {
+      onSuccess: () => {
+        // After successful toggle, refetch the following status
+        refetchFollowing();
+        toast.success(isFollowing ? 'Successfully unfollowed' : 'Successfully followed');
+      },
+      onError: (error) => {
+        toast.error('Failed to toggle follow status');
+      }
+    }
+  );
 
   const handleCopyUrl = async () => {
     try {
@@ -156,11 +195,25 @@ const StudentActivityDetails = () => {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-gray-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h1 className="text-3xl font-bold text-white group-hover:text-blue-400 transition-colors">{activityData.name}</h1>
                       <p className="text-gray-400 mt-1">{activityData.university}</p>
                       <p className="text-gray-400">{activityData.faculty}</p>
                     </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => toggleFollowMutation.mutate()}
+                      disabled={isFollowingLoading || toggleFollowMutation.isLoading}
+                      className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 ${
+                        isFollowing
+                          ? 'bg-red-600 hover:bg-red-700 text-white'
+                          : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                      }`}
+                    >
+                      <Heart className={`w-5 h-5 ${isFollowing ? 'fill-current' : ''}`} />
+                      <span>{isFollowing ? 'Unfollow' : 'Follow'}</span>
+                    </motion.button>
                   </div>
                 </div>
               </div>

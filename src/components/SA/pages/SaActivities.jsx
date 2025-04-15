@@ -103,43 +103,44 @@ function SaActivities() {
   const [mapCenter, setMapCenter] = useState([30.0444, 31.2357]); // Default to Cairo coordinates
   const [isGeocoding, setIsGeocoding] = useState(false);
 
-  // Fetch activities from API
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        setIsLoading(true);
-        // Get SA ID from local storage
-        const saProfile = JSON.parse(localStorage.getItem('saProfile'));
-        if (!saProfile?.id) {
-          toast.error("Student Activity profile not found");
-          return;
-        }
+  // Define fetchActivities function outside useEffect
+  const fetchActivities = async () => {
+    try {
+      setIsLoading(true);
+      // Get SA ID from local storage
+      const saProfile = JSON.parse(localStorage.getItem('saProfile'));
+      if (!saProfile?.id) {
+        toast.error("Student Activity profile not found");
+        return;
+      }
 
-        const response = await axiosInstance().get(`/activity/sa/${saProfile.id}`);
-        console.log("API Response:", response.data);
-        
-        if (response.data?.isSuccess) {
-          const activitiesData = response.data.data || [];
-          console.log("Activities data:", activitiesData);
-          setActivities(activitiesData);
-          setFilteredActivities(activitiesData);
-          toast.success("Activities loaded successfully");
-        } else {
-          console.error("API returned unsuccessful response:", response.data);
-          toast.error("Failed to fetch activities");
-          setActivities([]);
-          setFilteredActivities([]);
-        }
-      } catch (error) {
-        console.error("Error fetching activities:", error);
-        toast.error(error.response?.data?.message || "Failed to fetch activities");
+      const response = await axiosInstance().get(`/activity/sa/${saProfile.id}`);
+      console.log("API Response:", response.data);
+      
+      if (response.data?.isSuccess) {
+        const activitiesData = response.data.data || [];
+        console.log("Activities data:", activitiesData);
+        setActivities(activitiesData);
+        setFilteredActivities(activitiesData);
+        toast.success("Activities loaded successfully");
+      } else {
+        console.error("API returned unsuccessful response:", response.data);
+        toast.error("Failed to fetch activities");
         setActivities([]);
         setFilteredActivities([]);
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      toast.error(error.response?.data?.message || "Failed to fetch activities");
+      setActivities([]);
+      setFilteredActivities([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Fetch activities from API
+  useEffect(() => {
     fetchActivities();
   }, []); // Empty dependency array since we're using localStorage
 

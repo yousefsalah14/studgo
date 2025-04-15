@@ -25,13 +25,13 @@ import ForgotPassword from './components/Auth/ForgetPassword.jsx';
 import ResetCode from './components/Auth/RestCode.jsx';
 import Profile from './components/student/pages/profile.jsx';
 import Activities from './components/student/pages/Activities.jsx';
-import Workshops from './components/student/pages/Workshops.jsx';
 import ActivityDetails from './components/student/pages/ActivityDetails.jsx';
 import Calendar from './components/student/pages/Calendar.jsx';
 import Internships from './components/student/pages/Internships.jsx';
 import WorkshopDetails from './components/student/pages/WorkshopDetails';
 import GoogleCallback from './components/Auth/GoogleCallback';
 import { useEffect } from 'react';
+import FollowedStudentActivities from './components/student/pages/FollowedStudentActivities.jsx';
 
 function AuthRoute({ children }) {
   const { currentUser } = useAuthStore();
@@ -64,7 +64,7 @@ function App() {
       { path: 'profile', element: <ProtectedRoute requiredRole="Student"><Profile /></ProtectedRoute> },
       { path: 'calendar', element: <ProtectedRoute requiredRole="Student"><Calendar /></ProtectedRoute> },
       { path: 'activities', element: <ProtectedRoute requiredRole="Student"><Activities /></ProtectedRoute> },
-      { path: 'workshops', element: <ProtectedRoute requiredRole="Student"><Workshops /></ProtectedRoute> },
+      { path: 'followed-activities', element: <ProtectedRoute requiredRole="Student"><FollowedStudentActivities /></ProtectedRoute> },
       { path: 'interns', element: <ProtectedRoute requiredRole="Student"><Internships /></ProtectedRoute> },
       { path: 'studentactivity/:id', element: <ProtectedRoute requiredRole="Student"><StudentActivityDetails /></ProtectedRoute> },
       { path: 'workshops/:id', element: <WorkshopDetails /> },

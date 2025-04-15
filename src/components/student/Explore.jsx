@@ -15,9 +15,9 @@ const ExploreSection = () => {
       icon: "📅",
     },
     {
-      title: "Workshops",
-      description: "Join interactive workshops led by industry experts, covering a range of topics to help you stay ahead in your academic and professional journey.",
-      link: "/workshops",
+      title: "Followed Activities",
+      description: "View and manage the student activities you're following to stay updated with their latest events and opportunities.",
+      link: "/followed-activities",
       icon: "🔧",
     },
     {

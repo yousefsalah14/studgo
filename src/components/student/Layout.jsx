@@ -1,6 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import NavBar from "./NavBar.jsx";
+import FloatingChat from "./FloatingChat.jsx";
 
 export default function Layout() {
 //   const { userData } = useContext(UserContext); // Access user data from context (optional)
@@ -12,6 +13,7 @@ export default function Layout() {
       <main className="flex-grow">
         <Outlet /> {/* Render child routes */}
       </main>
+      <FloatingChat />
       {/* <Footer /> */}
     </div>
   );

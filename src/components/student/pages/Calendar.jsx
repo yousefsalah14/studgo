@@ -94,7 +94,9 @@ const generateFilterOptions = () => {
 };
 
 // Calendar Header Component
-const CalendarHeader = ({ currentDate, viewMode, onNavigate, onFilterToggle, showFilters }) => {
+const CalendarHeader = ({ currentDate, viewMode, onNavigate, onFilterToggle, showFilters, onFilterChange }) => {
+  const { years, months, days } = generateFilterOptions();
+  
   const renderCalendarHeader = () => {
     if (viewMode === "month") {
       return format(currentDate, 'MMMM yyyy');
@@ -108,20 +110,20 @@ const CalendarHeader = ({ currentDate, viewMode, onNavigate, onFilterToggle, sho
   };
 
   return (
-    <div className="max-w-7xl mx-auto mb-4 sm:mb-8 px-4 sm:px-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent tracking-tight">
             Calendar
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => onNavigate("prev")}
               className="p-2 rounded-lg hover:bg-gray-800 transition-all duration-200"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <span className="text-lg sm:text-xl font-medium tracking-wide">
+            <span className="text-lg sm:text-xl font-medium tracking-wide px-2">
               {renderCalendarHeader()}
             </span>
             <button
@@ -132,15 +134,63 @@ const CalendarHeader = ({ currentDate, viewMode, onNavigate, onFilterToggle, sho
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex items-center">
+          <div className="relative inline-block">
             <button 
               onClick={onFilterToggle}
-              className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 font-medium"
+              className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 font-medium ${
+                showFilters 
+                  ? "bg-blue-500 text-white" 
+                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              }`}
             >
               <Filter className="w-4 h-4" />
               Filter
             </button>
+            {showFilters && (
+              <div className="absolute right-0 top-[calc(100%+4px)] w-64 bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-4 z-50">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Year</label>
+                    <select 
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      value={getYear(currentDate)}
+                      onChange={(e) => onFilterChange('year', e.target.value)}
+                    >
+                      {years.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Month</label>
+                    <select 
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      value={getMonth(currentDate)}
+                      onChange={(e) => onFilterChange('month', e.target.value)}
+                    >
+                      {months.map(month => (
+                        <option key={month.value} value={month.value}>{month.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Day</label>
+                    <select 
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      value={getDate(currentDate)}
+                      onChange={(e) => onFilterChange('day', e.target.value)}
+                    >
+                      {days.map(day => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -151,94 +201,40 @@ const CalendarHeader = ({ currentDate, viewMode, onNavigate, onFilterToggle, sho
 // View Mode Toggle Component
 const ViewModeToggle = ({ viewMode, onViewModeChange }) => {
   return (
-    <div className="max-w-7xl mx-auto mb-4 sm:mb-6 px-4 sm:px-6">
-      <div className="flex items-center gap-2 bg-gray-800/50 p-1 rounded-lg w-fit">
-        <button
-          onClick={() => onViewModeChange("month")}
-          className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
-            viewMode === "month"
-              ? "bg-blue-500 text-white"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <CalendarView className="w-4 h-4" />
-          <span className="hidden sm:inline">Month</span>
-        </button>
-        <button
-          onClick={() => onViewModeChange("week")}
-          className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
-            viewMode === "week"
-              ? "bg-blue-500 text-white"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Grid className="w-4 h-4" />
-          <span className="hidden sm:inline">Week</span>
-        </button>
-        <button
-          onClick={() => onViewModeChange("day")}
-          className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
-            viewMode === "day"
-              ? "bg-blue-500 text-white"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <List className="w-4 h-4" />
-          <span className="hidden sm:inline">Day</span>
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Filter Dropdown Component
-const FilterDropdown = ({ showFilters, currentDate, onFilterChange }) => {
-  const { years, months, days } = generateFilterOptions();
-  
-  if (!showFilters) return null;
-  
-  return (
-    <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-xl p-4 z-10">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Year</label>
-          <select 
-            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            value={getYear(currentDate)}
-            onChange={(e) => onFilterChange('year', e.target.value)}
-          >
-            {years.map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Month</label>
-          <select 
-            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            value={getMonth(currentDate)}
-            onChange={(e) => onFilterChange('month', e.target.value)}
-          >
-            {months.map(month => (
-              <option key={month.value} value={month.value}>{month.label}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Day</label>
-          <select 
-            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            value={getDate(currentDate)}
-            onChange={(e) => onFilterChange('day', e.target.value)}
-          >
-            {days.map(day => (
-              <option key={day} value={day}>{day}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+    <div className="flex items-center gap-2 bg-gray-800/50 p-1.5 rounded-lg w-fit">
+      <button
+        onClick={() => onViewModeChange("month")}
+        className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
+          viewMode === "month"
+            ? "bg-blue-500 text-white"
+            : "text-gray-400 hover:text-white"
+        }`}
+      >
+        <CalendarView className="w-4 h-4" />
+        <span className="hidden sm:inline">Month</span>
+      </button>
+      <button
+        onClick={() => onViewModeChange("week")}
+        className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
+          viewMode === "week"
+            ? "bg-blue-500 text-white"
+            : "text-gray-400 hover:text-white"
+        }`}
+      >
+        <Grid className="w-4 h-4" />
+        <span className="hidden sm:inline">Week</span>
+      </button>
+      <button
+        onClick={() => onViewModeChange("day")}
+        className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
+          viewMode === "day"
+            ? "bg-blue-500 text-white"
+            : "text-gray-400 hover:text-white"
+        }`}
+      >
+        <List className="w-4 h-4" />
+        <span className="hidden sm:inline">Day</span>
+      </button>
     </div>
   );
 };
@@ -353,14 +349,14 @@ const EventMap = ({ event }) => {
 // Upcoming Events Component
 const UpcomingEvents = ({ events, countdown }) => {
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-xl">
-      <div className="mb-4 sm:mb-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 shadow-xl h-full">
+      <div className="mb-5">
         <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight">
           Upcoming Events
         </h2>
       </div>
 
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-4">
         {events.map((event) => (
           <div
             key={event.id}
@@ -616,7 +612,7 @@ const CalendarGrid = ({
   };
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-xl">
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 shadow-xl">
       {viewMode === "month" && renderMonthView()}
       {viewMode === "week" && renderWeekView()}
       {viewMode === "day" && renderDayView()}
@@ -768,50 +764,33 @@ export default function Calendar() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white pt-24 px-6">
-      {/* Add custom animation styles */}
+    <div className="min-h-screen bg-gray-900 text-white pt-16 pb-8">
       <style>
-        {`
-          @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
-          }
-          .animate-shake {
-            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-          }
-        `}
+        {shakeAnimation}
       </style>
 
-      {/* Header */}
-      <CalendarHeader 
-        currentDate={currentDate}
-        viewMode={viewMode}
-        onNavigate={handleDateNavigation}
-        onFilterToggle={() => setShowFilters(!showFilters)}
-        showFilters={showFilters}
-      />
+      {/* Header Section */}
+      <div className="mb-6">
+        <CalendarHeader 
+          currentDate={currentDate}
+          viewMode={viewMode}
+          onNavigate={handleDateNavigation}
+          onFilterToggle={() => setShowFilters(!showFilters)}
+          showFilters={showFilters}
+          onFilterChange={handleFilterChange}
+        />
 
-      {/* View Mode Toggle */}
-      <ViewModeToggle 
-        viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
-      />
-
-      {/* Filter Dropdown */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="relative">
-          <FilterDropdown 
-            showFilters={showFilters}
-            currentDate={currentDate}
-            onFilterChange={handleFilterChange}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <ViewModeToggle 
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
           />
         </div>
       </div>
 
-      {/* Main Content - Calendar View */}
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar Section */}
           <div className="lg:col-span-2">
             <CalendarGrid 
@@ -826,10 +805,12 @@ export default function Calendar() {
           </div>
 
           {/* Upcoming Events Section */}
-          <UpcomingEvents 
-            events={getUpcomingEvents()}
-            countdown={countdown}
-          />
+          <div className="mt-6 lg:mt-0">
+            <UpcomingEvents 
+              events={getUpcomingEvents()}
+              countdown={countdown}
+            />
+          </div>
         </div>
       </div>
 

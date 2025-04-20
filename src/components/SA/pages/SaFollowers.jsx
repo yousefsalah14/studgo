@@ -15,7 +15,8 @@ import {
   Phone,
   Calendar,
   GraduationCap,
-  Building2
+  Building2,
+  MessageCircle
 } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
 import { axiosInstance } from "../../../lib/axios";
@@ -103,6 +104,11 @@ function SaFollowers() {
     department: "Computer Science",
     year: "1st Year",
     status: "Active"
+  });
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notificationData, setNotificationData] = useState({
+    title: "",
+    message: ""
   });
   const { apiRequest } = useAuthStore();
   const [selectedFollower, setSelectedFollower] = useState(null);
@@ -229,10 +235,45 @@ function SaFollowers() {
   // Get unique departments for filter
   const departments = [...new Set(followers.map(follower => follower.department))];
 
+  // Handle notification form input changes
+  const handleNotificationInputChange = (e) => {
+    const { name, value } = e.target;
+    setNotificationData({
+      ...notificationData,
+      [name]: value
+    });
+  };
+
+  // Handle sending notification to all students
+  const handleSendNotification = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance().post("/activity/notify", notificationData);
+      if (response.data?.isSuccess) {
+        toast.success("Notification sent successfully!");
+        setShowNotifyModal(false);
+        setNotificationData({ title: "", message: "" });
+      }
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      toast.error(error.response?.data?.message || "Failed to send notification");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h1 className="text-2xl font-bold text-white mb-4 md:mb-0">Followers</h1>
+        <button
+          onClick={() => setShowNotifyModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+        >
+          <MessageCircle size={18} />
+          <span>Notify All Students</span>
+        </button>
       </div>
 
       {/* Search and Filters */}
@@ -482,6 +523,81 @@ function SaFollowers() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      {showNotifyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <h3 className="text-xl font-semibold text-white">Send Notification to All Students</h3>
+              <button
+                onClick={() => setShowNotifyModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSendNotification} className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-1">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={notificationData.title}
+                    onChange={handleNotificationInputChange}
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-gray-400 mb-1">
+                    Message
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    value={notificationData.message}
+                    onChange={handleNotificationInputChange}
+                    rows={4}
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowNotifyModal(false)}
+                  className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="animate-spin">⌛</span>
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle size={18} />
+                      <span>Send Notification</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

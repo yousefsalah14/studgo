@@ -70,7 +70,7 @@
 .chat-header {
   background: linear-gradient(135deg, #3b82f6, #60a5fa);
   color: white;
-  padding: 15px 20px;
+  padding: 15px 25px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -90,7 +90,7 @@
   border: none;
   color: white;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 18px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -102,7 +102,11 @@
 
 .close-button:hover {
   background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
+  transform: scale(1.1);
+}
+
+.close-button svg {
+  font-size: 16px;
 }
 
 .messages-container {
@@ -285,4 +289,41 @@
     height: 45px;
     font-size: 18px;
   }
+}
+
+.header-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.clear-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.clear-button:hover {
+  background: rgba(255, 0, 0, 0.3);
+  transform: scale(1.1);
+}
+
+.clear-button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.clear-button svg {
+  font-size: 16px;
 } 

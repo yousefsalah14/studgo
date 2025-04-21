@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaComment, FaTimes, FaPaperPlane } from 'react-icons/fa';
+import { FaComment, FaTimes, FaPaperPlane, FaTrash } from 'react-icons/fa';
 import { chatAxiosInstance } from '../../lib/axios';
 import './FloatingChat.css';
 
@@ -159,6 +159,18 @@ const FloatingChat = () => {
     }
   };
 
+  const handleClearChat = async () => {
+    try {
+      setIsLoading(true);
+      await chatAxiosInstance().delete('/chat');
+      setMessages([]);
+    } catch (error) {
+      console.error('Error clearing chat:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="floating-chat-container">
       {!isOpen && (
@@ -171,9 +183,18 @@ const FloatingChat = () => {
         <div className="chat-window">
           <div className="chat-header">
             <h3>Chat Assistant</h3>
-            <button className="close-button" onClick={() => setIsOpen(false)}>
-              <FaTimes />
-            </button>
+            <div className="header-buttons">
+              <button 
+                className="clear-button" 
+                onClick={handleClearChat}
+                disabled={isLoading || isStreaming}
+              >
+                <FaTrash />
+              </button>
+              <button className="close-button" onClick={() => setIsOpen(false)}>
+                <FaTimes />
+              </button>
+            </div>
           </div>
 
           <div className="messages-container">

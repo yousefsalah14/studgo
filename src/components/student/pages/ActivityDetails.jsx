@@ -218,7 +218,7 @@ function ActivityDetails() {
   // Check if activity has started
   const hasActivityStarted = () => {
     if (!activity?.startDate) return false;
-    return isBefore(new Date(), parseISO(activity.startDate));
+    return isAfter(new Date(), parseISO(activity.startDate));
   };
 
   // Check if user can apply

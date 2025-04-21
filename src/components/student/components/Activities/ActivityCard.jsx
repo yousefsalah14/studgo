@@ -86,7 +86,7 @@ function ActivityCard({ activity, onApply, isApplied }) {
   // Check if activity has started
   const hasActivityStarted = () => {
     if (!startDate) return false;
-    return isBefore(new Date(), parseISO(startDate));
+    return isAfter(new Date(), parseISO(startDate));
   };
 
   const handleViewDetails = () => {
@@ -179,15 +179,6 @@ function ActivityCard({ activity, onApply, isApplied }) {
             View Details
             <ChevronRight className="w-4 h-4" />
           </button>
-          {!isApplied && !isDeadlinePassed() && !hasActivityStarted() && (
-            <button
-              onClick={onApply}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center gap-2"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Apply Now
-            </button>
-          )}
           {isApplied && (
             <span className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />

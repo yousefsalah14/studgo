@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaComment, FaTimes, FaPaperPlane } from 'react-icons/fa';
-import axios from 'axios';
+import { chatAxiosInstance } from '../../lib/axios';
 import './FloatingChat.css';
-
-const API_BASE_URL = 'http://localhost:8000';
-const STUDENT_ID = 1; // This should be replaced with the actual student ID from your auth system
 
 const FloatingChat = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,7 +35,7 @@ const FloatingChat = () => {
   const fetchChatHistory = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/conversations/${STUDENT_ID}`);
+      const response = await chatAxiosInstance().get('/conversations');
       console.log('Chat history response:', response.data);
       
       if (response.data && Array.isArray(response.data)) {
@@ -112,8 +109,7 @@ const FloatingChat = () => {
     setIsStreaming(true);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/chat`, {
-        student_id: STUDENT_ID,
+      const response = await chatAxiosInstance().post('/chat', {
         message: newMessage
       });
 

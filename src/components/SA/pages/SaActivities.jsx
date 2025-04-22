@@ -18,7 +18,7 @@ import {
   Unlock
 } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
-import { axiosInstance } from "../../../lib/axios";
+import { axiosInstance, getSAIdFromToken } from "../../../lib/axios";
 import { toast } from "react-hot-toast";
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -107,25 +107,20 @@ function SaActivities() {
   const fetchActivities = async () => {
     try {
       setIsLoading(true);
-      // Get SA ID from local storage
-      const saProfile = JSON.parse(localStorage.getItem('saProfile'));
-      if (!saProfile?.id) {
-        toast.error("Student Activity profile not found");
+      const saId = getSAIdFromToken();
+      if (!saId) {
+        toast.error("No SA ID found");
+        navigate("/login");
         return;
       }
 
-      const response = await axiosInstance().get(`/activity/sa/${saProfile.id}`);
-      console.log("API Response:", response.data);
-      
+      const response = await axiosInstance().get(`/activity/sa/${saId}`);
       if (response.data?.isSuccess) {
         const activitiesData = response.data.data || [];
-        console.log("Activities data:", activitiesData);
         setActivities(activitiesData);
         setFilteredActivities(activitiesData);
-        toast.success("Activities loaded successfully");
       } else {
-        console.error("API returned unsuccessful response:", response.data);
-        toast.error("Failed to fetch activities");
+        toast.error(response.data?.message || "Failed to fetch activities");
         setActivities([]);
         setFilteredActivities([]);
       }
@@ -142,7 +137,7 @@ function SaActivities() {
   // Fetch activities from API
   useEffect(() => {
     fetchActivities();
-  }, []); // Empty dependency array since we're using localStorage
+  }, []); // Empty dependency array since we're using token
 
   // Filter activities based on search query and filters
   useEffect(() => {

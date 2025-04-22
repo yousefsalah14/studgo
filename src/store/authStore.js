@@ -120,7 +120,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   handleLogout: () => {
-    localStorage.removeItem("accessToken");
+    localStorage.clear();
     set({ accessToken: null, currentUser: null, apiError: null, loading: false });
   },
 

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 export const BaseUrl = "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net";
 export const ChatBaseUrl = "https://chatbot-0522.onrender.com";
@@ -34,4 +35,17 @@ export const chatAxiosInstance = () => {
             'Content-Type': 'application/json'
         },
     });
+};
+
+export const getSAIdFromToken = () => {
+    const token = localStorage.getItem('accessToken').replace('bearer ', '');
+    if (!token) return null;
+    
+    try {
+        const decodedToken = jwtDecode(token);
+        return decodedToken?.EntityId;
+    } catch (error) {
+        console.error('Error decoding token:', error);
+        return null;
+    }
 };

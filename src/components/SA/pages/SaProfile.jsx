@@ -4,11 +4,12 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Upload } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { axiosInstance } from "../../../lib/axios";
+import { axiosInstance, getSAIdFromToken } from "../../../lib/axios";
 import { BaseUrl } from "../../../lib/axios";
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useNavigate } from "react-router-dom";
 
 // Validation Schema
 const validationSchema = Yup.object().shape({
@@ -70,28 +71,73 @@ function LocationMarker({ onLocationSelect, initialPosition }) {
 
 export default function SaProfile() {
   const { currentUser } = useAuthStore();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [pictureFile, setPictureFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [initialPosition, setInitialPosition] = useState(null);
+  const [profileData, setProfileData] = useState({
+    name: "",
+    biography: "",
+    foundingDate: "",
+    pictureUrl: "",
+    joinFormUrl: "",
+    websiteUrl: "",
+    contactEmail: currentUser?.email || "",
+    contactPhoneNumber: "",
+    longitude: "0",
+    latitude: "0",
+    university: "",
+    faculty: "",
+    address: ""
+  });
+
+  useEffect(() => {
+    const saId = getSAIdFromToken();
+    if (!saId) {
+      toast.error("No SA ID found");
+      navigate("/login");
+      return;
+    }
+    fetchProfile(saId);
+  }, []);
+
+  const fetchProfile = async (saId) => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance().get(`/student-activity/${saId}`);
+      const data = response.data;
+      setProfileData({
+        name: data.name || "",
+        biography: data.biography || "",
+        foundingDate: data.foundingDate ? new Date(data.foundingDate).toISOString().split('T')[0] : "",
+        pictureUrl: data.pictureUrl || "",
+        joinFormUrl: data.joinFormUrl || "",
+        websiteUrl: data.websiteUrl || "",
+        contactEmail: data.contactEmail || currentUser?.email || "",
+        contactPhoneNumber: data.contactPhoneNumber || "",
+        longitude: data.longitude || "0",
+        latitude: data.latitude || "0",
+        university: data.university || "",
+        faculty: data.faculty || "",
+        address: data.address || ""
+      });
+
+      // Set preview URL if picture exists
+      if (data.pictureUrl) {
+        setPreviewUrl(data.pictureUrl);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      toast.error("Failed to fetch profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formik = useFormik({
-    initialValues: {
-      name: "",
-      biography: "",
-      foundingDate: "",
-      pictureUrl: "",
-      joinFormUrl: "",
-      websiteUrl: "",
-      contactEmail: currentUser?.email || "",
-      contactPhoneNumber: "",
-      longitude: "0",
-      latitude: "0",
-      university: "",
-      faculty: "",
-      address: ""
-    },
+    initialValues: profileData,
     validationSchema,
     onSubmit: async (values) => {
       try {
@@ -116,11 +162,17 @@ export default function SaProfile() {
 
         console.log("Formatted data for submission:", formattedData); // Debug log
 
-        const response = await axiosInstance().post("/sa/update-profile", formattedData);
+        const saId = getSAIdFromToken();
+        if (!saId) {
+          toast.error("No SA ID found");
+          navigate("/login");
+          return;
+        }
+
+        const response = await axiosInstance().put(`/student-activity/${saId}`, formattedData);
         console.log("API Response:", response.data); // Debug log
 
         if (response.data?.isSuccess) {
-          await updateStoredProfile();
           toast.success("Profile updated successfully!");
         } else {
           toast.error(response.data?.message || "Failed to update profile");
@@ -133,49 +185,6 @@ export default function SaProfile() {
       }
     },
   });
-
-  // Function to fetch and update stored profile
-  const updateStoredProfile = async () => {
-    try {
-      const response = await axiosInstance().get("/sa/profile");
-      if (response.data?.isSuccess) {
-        const profileData = response.data.data;
-        localStorage.setItem('saProfile', JSON.stringify(profileData));
-      }
-    } catch (error) {
-      console.error("Error updating stored profile:", error);
-    }
-  };
-
-  // Load profile data from localStorage
-  useEffect(() => {
-    const storedProfile = localStorage.getItem('saProfile');
-    if (storedProfile) {
-      const profileData = JSON.parse(storedProfile);
-      
-      // Update formik values with stored data
-      formik.setValues({
-        name: profileData.name || "",
-        biography: profileData.biography || "",
-        foundingDate: profileData.foundingDate ? new Date(profileData.foundingDate).toISOString().split('T')[0] : "",
-        pictureUrl: profileData.pictureUrl || "",
-        joinFormUrl: profileData.joinFormUrl || "",
-        websiteUrl: profileData.websiteUrl || "",
-        contactEmail: profileData.contactEmail || currentUser?.email || "",
-        contactPhoneNumber: profileData.contactPhoneNumber || "",
-        longitude: profileData.longitude || "0",
-        latitude: profileData.latitude || "0",
-        university: profileData.university || "",
-        faculty: profileData.faculty || "",
-        address: profileData.address || ""
-      });
-
-      // Set preview URL if picture exists
-      if (profileData.pictureUrl) {
-        setPreviewUrl(profileData.pictureUrl);
-      }
-    }
-  }, [currentUser]);
 
   // Update initialPosition when formik values change
   useEffect(() => {
@@ -200,7 +209,14 @@ export default function SaProfile() {
 
     try {
       setIsLoading(true);
-      const response = await axiosInstance().post("/sa/upload-picture", formData, {
+      const saId = getSAIdFromToken();
+      if (!saId) {
+        toast.error("No SA ID found");
+        navigate("/login");
+        return;
+      }
+
+      const response = await axiosInstance().post(`/student-activity/${saId}/upload-picture`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -208,8 +224,6 @@ export default function SaProfile() {
 
       if (response.data?.isSuccess) {
         formik.setFieldValue("pictureUrl", response.data.data.pictureUrl);
-        // Update stored profile after successful picture upload
-        await updateStoredProfile();
         toast.success("Profile picture uploaded successfully!");
       }
     } catch (error) {

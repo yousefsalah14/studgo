@@ -93,58 +93,20 @@ export default function SaProfile() {
     address: ""
   });
 
-  useEffect(() => {
-    const saId = getSAIdFromToken();
-    if (!saId) {
-      toast.error("No SA ID found");
-      navigate("/login");
-      return;
-    }
-    fetchProfile(saId);
-  }, []);
-
-  const fetchProfile = async (saId) => {
-    try {
-      setIsLoading(true);
-      const response = await axiosInstance().get(`/student-activity/${saId}`);
-      const data = response.data;
-      setProfileData({
-        name: data.name || "",
-        biography: data.biography || "",
-        foundingDate: data.foundingDate ? new Date(data.foundingDate).toISOString().split('T')[0] : "",
-        pictureUrl: data.pictureUrl || "",
-        joinFormUrl: data.joinFormUrl || "",
-        websiteUrl: data.websiteUrl || "",
-        contactEmail: data.contactEmail || currentUser?.email || "",
-        contactPhoneNumber: data.contactPhoneNumber || "",
-        longitude: data.longitude || "0",
-        latitude: data.latitude || "0",
-        university: data.university || "",
-        faculty: data.faculty || "",
-        address: data.address || ""
-      });
-
-      // Set preview URL if picture exists
-      if (data.pictureUrl) {
-        setPreviewUrl(data.pictureUrl);
-      }
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-      toast.error("Failed to fetch profile");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const formik = useFormik({
     initialValues: profileData,
     validationSchema,
+    enableReinitialize: true,
     onSubmit: async (values) => {
       try {
         setIsLoading(true);
-        console.log("Submitting form with values:", values); // Debug log
+        const saId = getSAIdFromToken();
+        if (!saId) {
+          toast.error("No SA ID found");
+          navigate("/login");
+          return;
+        }
 
-        // Format the data for submission, excluding pictureUrl
         const formattedData = {
           name: values.name,
           biography: values.biography,
@@ -160,20 +122,12 @@ export default function SaProfile() {
           address: values.address
         };
 
-        console.log("Formatted data for submission:", formattedData); // Debug log
-
-        const saId = getSAIdFromToken();
-        if (!saId) {
-          toast.error("No SA ID found");
-          navigate("/login");
-          return;
-        }
-
-        const response = await axiosInstance().put(`/student-activity/${saId}`, formattedData);
-        console.log("API Response:", response.data); // Debug log
-
+        const response = await axiosInstance().post(`/sa/update-profile`, formattedData);
+        
         if (response.data?.isSuccess) {
           toast.success("Profile updated successfully!");
+          // Refresh profile data after update
+          fetchProfile(saId);
         } else {
           toast.error(response.data?.message || "Failed to update profile");
         }
@@ -185,6 +139,54 @@ export default function SaProfile() {
       }
     },
   });
+
+  useEffect(() => {
+    const saId = getSAIdFromToken();
+    if (!saId) {
+      toast.error("No SA ID found");
+      navigate("/login");
+      return;
+    }
+    fetchProfile(saId);
+  }, [navigate]);
+
+  const fetchProfile = async (saId) => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance().get(`/sa/${saId}`);
+      if (response.data?.isSuccess) {
+        const data = response.data.data;
+        const newProfileData = {
+          name: data.name || "",
+          biography: data.biography || "",
+          foundingDate: data.foundingDate ? new Date(data.foundingDate).toISOString().split('T')[0] : "",
+          pictureUrl: data.pictureUrl || "",
+          joinFormUrl: data.joinFormUrl || "",
+          websiteUrl: data.websiteUrl || "",
+          contactEmail: data.contactEmail || currentUser?.email || "",
+          contactPhoneNumber: data.contactPhoneNumber || "",
+          longitude: data.longitude || "0",
+          latitude: data.latitude || "0",
+          university: data.university || "",
+          faculty: data.faculty || "",
+          address: data.address || ""
+        };
+        setProfileData(newProfileData);
+        formik.setValues(newProfileData);
+
+        if (data.pictureUrl) {
+          setPreviewUrl(data.pictureUrl);
+        }
+      } else {
+        toast.error(response.data?.message || "Failed to fetch profile");
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      toast.error("Failed to fetch profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Update initialPosition when formik values change
   useEffect(() => {
@@ -216,7 +218,7 @@ export default function SaProfile() {
         return;
       }
 
-      const response = await axiosInstance().post(`/student-activity/${saId}/upload-picture`, formData, {
+      const response = await axiosInstance().post(`/sa/upload-picture`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

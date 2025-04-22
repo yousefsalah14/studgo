@@ -28,7 +28,7 @@ import Activities from './components/student/pages/Activities.jsx';
 import ActivityDetails from './components/student/pages/ActivityDetails.jsx';
 import Calendar from './components/student/pages/Calendar.jsx';
 import Internships from './components/student/pages/Internships.jsx';
-import WorkshopDetails from './components/student/pages/WorkshopDetails';
+
 import GoogleCallback from './components/Auth/GoogleCallback';
 import { useEffect } from 'react';
 import FollowedStudentActivities from './components/student/pages/FollowedStudentActivities.jsx';
@@ -67,8 +67,7 @@ function App() {
       { path: 'followed-activities', element: <ProtectedRoute requiredRole="Student"><FollowedStudentActivities /></ProtectedRoute> },
       { path: 'interns', element: <ProtectedRoute requiredRole="Student"><Internships /></ProtectedRoute> },
       { path: 'studentactivity/:id', element: <ProtectedRoute requiredRole="Student"><StudentActivityDetails /></ProtectedRoute> },
-      { path: 'workshops/:id', element: <WorkshopDetails /> },
-      { path: 'activities/:id', element: <ActivityDetails /> },
+      { path: 'activities/:id', element: <ProtectedRoute requiredRole="Student"><ActivityDetails /></ProtectedRoute> },
     ],
   };
 

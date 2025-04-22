@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const BaseUrl = "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net";
-export const ChatBaseUrl = "http://localhost:8000";
+export const ChatBaseUrl = "https://chatbot-0522.onrender.com";
 
 export const axiosInstance = () => {
     // Get the token from localStorage

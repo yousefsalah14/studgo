@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Activity, Users, FileText, TrendingUp, ChartPie } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore.js";
-import { axiosInstance } from "../../../lib/axios";
+import { axiosInstance, getSAIdFromToken } from "../../../lib/axios";
 import { toast } from "react-hot-toast";
 import DistributionChart from "../components/charts/DistributionChart.jsx";
 import ActivityTypeChart from "../components/charts/ActivityTypeChart.jsx";
@@ -40,7 +40,6 @@ function SaDashboard() {
         if (response.data?.isSuccess) {
           const profileData = response.data.data;
           setSaProfile(profileData);
-          localStorage.setItem('saProfile', JSON.stringify(profileData));
           toast.success("Profile loaded successfully");
         } else {
           console.error("Failed to fetch SA profile:", response.data);
@@ -52,24 +51,7 @@ function SaDashboard() {
       }
     };
 
-    // Try to get profile from localStorage first
-    const storedProfile = localStorage.getItem('saProfile');
-    if (storedProfile) {
-      const parsedProfile = JSON.parse(storedProfile);
-      setSaProfile(parsedProfile);
-      // Only fetch if stored data is older than 1 hour
-      const storedTime = localStorage.getItem('saProfileTimestamp');
-      const ONE_HOUR = 60 * 60 * 1000; // 1 hour in milliseconds
-      
-      if (!storedTime || Date.now() - parseInt(storedTime) > ONE_HOUR) {
-        fetchSaProfile();
-        localStorage.setItem('saProfileTimestamp', Date.now().toString());
-      }
-    } else {
-      // No stored profile, fetch from API
-      fetchSaProfile();
-      localStorage.setItem('saProfileTimestamp', Date.now().toString());
-    }
+    fetchSaProfile();
   }, []);
 
   // Fetch statistics
@@ -117,14 +99,14 @@ function SaDashboard() {
   useEffect(() => {
     const fetchRecentActivities = async () => {
       try {
-        const saProfile = JSON.parse(localStorage.getItem('saProfile'));
-        if (!saProfile?.id) {
-          toast.error("Student Activity profile not found");
+        const saId = getSAIdFromToken();
+        if (!saId) {
+          toast.error("Student Activity ID not found");
           return;
         }
 
         const response = await axiosInstance().get(
-          `/activity/filter?PageIndex=0&PageSize=5&StudentActivityId=${saProfile.id}&IsSortedByStartDate=true&IsDescending=true`
+          `/activity/filter?PageIndex=0&PageSize=5&StudentActivityId=${saId}&IsSortedByStartDate=true&IsDescending=true`
         );
 
         if (response.data?.isSuccess) {

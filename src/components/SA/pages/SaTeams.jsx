@@ -13,7 +13,7 @@ import {
   UserPlus,
   AlertTriangle
 } from "lucide-react";
-import { axiosInstance } from "../../../lib/axios";
+import { axiosInstance, getSAIdFromToken } from "../../../lib/axios";
 import { toast } from "react-hot-toast";
 
 
@@ -33,36 +33,16 @@ function SaTeams() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState(null);
 
-  // Fetch student activity profile and teams on component mount
+  // Fetch student activity ID and teams on component mount
   useEffect(() => {
-    const storedProfile = localStorage.getItem('saProfile');
-    if (storedProfile) {
-      const profileData = JSON.parse(storedProfile);
-      setStudentActivityId(profileData.id);
-      fetchTeams(profileData.id);
+    const saId = getSAIdFromToken();
+    if (saId) {
+      setStudentActivityId(saId);
+      fetchTeams(saId);
     } else {
-      fetchStudentActivityProfile();
+      toast.error("Student Activity ID not found");
     }
   }, []);
-
-  const fetchStudentActivityProfile = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axiosInstance().get("/sa/profile");
-      if (response.data?.isSuccess && response.data?.data) {
-        const profileData = response.data.data;
-        setStudentActivityId(profileData.id);
-        // Store in localStorage
-        localStorage.setItem('saProfile', JSON.stringify(profileData));
-        fetchTeams(profileData.id);
-      } else {
-        toast.error("Failed to fetch student activity profile");
-      }
-    } catch (error) {
-      console.error("Error fetching student activity profile:", error);
-      toast.error("Failed to fetch student activity profile");
-    }
-  };
 
   const fetchTeams = async (saId) => {
     try {

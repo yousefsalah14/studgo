@@ -1,7 +1,7 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
-export const BaseUrl = "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net";
+export const BaseUrl = "https://studgo.runasp.net";
 export const ChatBaseUrl = "http://localhost:10000";
 
 export const axiosInstance = () => {
@@ -10,7 +10,7 @@ export const axiosInstance = () => {
     
     return axios.create({
         // Use a relative URL that will be proxied
-        baseURL: "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api",
+        baseURL: "https://studgo.runasp.net/api",
         // Removing withCredentials for this API as it's causing CORS issues
         // withCredentials: true,
         headers: token ? { 

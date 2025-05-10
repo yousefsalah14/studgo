@@ -20,7 +20,7 @@ export const useAuthStore = create((set, get) => ({
   handleLogin: async (values) => {
     set({ loading: true, apiError: null });
     try {
-      const { data } = await axios.post("https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api/auth/login", values);
+      const { data } = await axios.post("https://studgo.runasp.net/api/auth/login", values);
       const token = `bearer ${data.data.accessToken}`;
       const decodedUser = jwtDecode(data.data.accessToken);
       localStorage.setItem("accessToken", token);
@@ -68,7 +68,7 @@ export const useAuthStore = create((set, get) => ({
       console.log("Google JWT token:", googleToken.substring(0, 20) + "...");
       
       const { data } = await axios.post(
-        "https://studgo-hweme6ccepbvd6hs.canadacentral-01.azurewebsites.net/api/auth/google",
+        "https://studgo.runasp.net/api/auth/google",
         { token: googleToken },
         {
           headers: {

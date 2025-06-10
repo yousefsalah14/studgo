@@ -3,6 +3,7 @@ import {
   Users,
   Activity,
   UserPlus,
+  Settings,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -30,6 +31,11 @@ function MenuItems({ isCollapsed, pathname }) {
       title: "Followers",
       icon: <UserPlus size={20} />,
       path: "/student-activity/followers",
+    },
+    {
+      title: "Preferences",
+      icon: <Settings size={20} />,
+      path: "/student-activity/preferences",
     },
   ];
 

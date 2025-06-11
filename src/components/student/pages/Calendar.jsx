@@ -390,7 +390,7 @@ const ActivityInsights = ({ activities }) => {
         </h2>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {/* Total Activities Card */}
         <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl p-4 backdrop-blur-sm border border-blue-500/20">
           <div className="flex items-center gap-3 mb-2">
@@ -399,7 +399,7 @@ const ActivityInsights = ({ activities }) => {
             </div>
             <h3 className="text-sm font-medium text-gray-300">Total</h3>
           </div>
-          <p className="text-2xl font-bold text-white">{insights.totalActivities}</p>
+          <p className="text-xl sm:text-2xl font-bold text-white break-words">{insights.totalActivities}</p>
         </div>
 
         {/* Upcoming Activities Card */}
@@ -410,7 +410,7 @@ const ActivityInsights = ({ activities }) => {
             </div>
             <h3 className="text-sm font-medium text-gray-300">Upcoming</h3>
           </div>
-          <p className="text-2xl font-bold text-white">{insights.upcomingCount}</p>
+          <p className="text-xl sm:text-2xl font-bold text-white break-words">{insights.upcomingCount}</p>
         </div>
 
         {/* Most Common Type Card */}
@@ -421,20 +421,20 @@ const ActivityInsights = ({ activities }) => {
             </div>
             <h3 className="text-sm font-medium text-gray-300">Common</h3>
           </div>
-          <p className="text-2xl font-bold text-white">{insights.mostCommonType}</p>
+          <p className="text-lg sm:text-xl font-bold text-white break-words truncate">{insights.mostCommonType}</p>
         </div>
       </div>
 
       {/* Motivational Quote Box */}
       <div className="relative overflow-hidden rounded-xl">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-gradient-x"></div>
-        <div className="relative p-6 text-center">
-          <p className="text-lg font-medium text-white mb-2">
+        <div className="relative p-4 sm:p-6 text-center">
+          <p className="text-base sm:text-lg font-medium text-white mb-2">
             {insights.upcomingCount > 0 
               ? "Stay organized and make the most of your upcoming activities!"
               : "Time to plan your next adventure!"}
           </p>
-          <p className="text-sm text-gray-300">
+          <p className="text-xs sm:text-sm text-gray-300">
             {insights.totalActivities > 0 
               ? `You've participated in ${insights.totalActivities} activities so far. Keep going!`
               : "Start your journey by joining your first activity!"}
@@ -833,29 +833,38 @@ export default function Calendar() {
 
   // Fetch activities and conflicts
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchActivities = async () => {
       try {
         setLoading(true);
-        const [activitiesResponse, conflictsResponse] = await Promise.all([
-          axiosInstance().post('/activity/student/my'),
-          chatAxiosInstance().get('/activities/conflicts')
-        ]);
-        
-        if (activitiesResponse.data.isSuccess) {
-          setActivities(activitiesResponse.data.data);
-        }
-        
-        if (conflictsResponse.data) {
-          setConflicts(conflictsResponse.data.conflicts || []);
+        const response = await axiosInstance().post('/activity/student/my');
+        if (response.data.isSuccess) {
+          setActivities(response.data.data);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching activities:', error);
+        // Set empty array as fallback
+        setActivities([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    const fetchConflicts = async () => {
+      try {
+        const response = await chatAxiosInstance().get('/activities/conflicts');
+        if (response.data) {
+          setConflicts(response.data.conflicts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching conflicts:', error);
+        // Set empty array as fallback
+        setConflicts([]);
+      }
+    };
+
+    // Fetch data independently
+    fetchActivities();
+    fetchConflicts();
   }, []);
 
   // Calculate countdown for each upcoming event

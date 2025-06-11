@@ -16,7 +16,9 @@ import {
   User,
   Pencil,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Mail,
+  Phone
 } from "lucide-react";
 import { axiosInstance } from "../../../lib/axios";
 import { toast } from "react-hot-toast";
@@ -29,12 +31,14 @@ function ActivitySADetails() {
   const [activity, setActivity] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [contents, setContents] = useState([]);
-  const [activeTab, setActiveTab] = useState('details'); // details, contents
+  const [activeTab, setActiveTab] = useState('details'); // details, contents, students
   const [showContentModal, setShowContentModal] = useState(false);
   const [editingContent, setEditingContent] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [contentToDelete, setContentToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [newContent, setNewContent] = useState({
     title: '',
     description: '',
@@ -72,6 +76,12 @@ function ActivitySADetails() {
     }
   }, [activeTab, id]);
 
+  useEffect(() => {
+    if (activeTab === 'students' && id) {
+      fetchStudents();
+    }
+  }, [activeTab, id]);
+
   const fetchContents = async () => {
     try {
       const response = await axiosInstance().get(`/content/activity/${id}`);
@@ -83,6 +93,31 @@ function ActivitySADetails() {
     } catch (error) {
       console.error('Error fetching contents:', error);
       toast.error(error.response?.data?.message || 'Failed to fetch contents');
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      setIsLoadingStudents(true);
+      const response = await axiosInstance().get(`/activity/students`, {
+        params: {
+          activityId: id
+        }
+      });
+      if (response.data?.isSuccess) {
+        setStudents(response.data.data || []);
+      } else {
+        toast.error('Failed to fetch students');
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      if (error.response?.status === 404) {
+        toast.error('No students found for this activity');
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to fetch students');
+      }
+    } finally {
+      setIsLoadingStudents(false);
     }
   };
 
@@ -234,6 +269,16 @@ function ActivitySADetails() {
           onClick={() => setActiveTab('contents')}
         >
           Contents
+        </button>
+        <button
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'students'
+              ? 'border-blue-500 text-blue-500'
+              : 'border-transparent text-gray-400 hover:text-gray-300'
+          }`}
+          onClick={() => setActiveTab('students')}
+        >
+          Students ({students.length})
         </button>
       </div>
 
@@ -387,8 +432,7 @@ function ActivitySADetails() {
             </div>
           </div>
         </div>
-      ) : (
-        /* Contents Tab */
+      ) : activeTab === 'contents' ? (
         <div className="bg-gray-800 rounded-lg overflow-hidden">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -444,6 +488,87 @@ function ActivitySADetails() {
             ) : (
               <div className="text-center py-8 text-gray-400">
                 No contents found for this activity
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Students Tab */
+        <div className="bg-gray-800 rounded-lg overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold text-white mb-6">
+              Applied Students ({students.length})
+            </h2>
+            
+            {isLoadingStudents ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+              </div>
+            ) : students.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {students.map((student) => (
+                  <div key={student.id} className="bg-gray-700 rounded-lg p-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
+                        {student.pictureUrl && student.pictureUrl !== "Picture have Issue" ? (
+                          <img
+                            src={student.pictureUrl}
+                            alt={`${student.firstName} ${student.lastName}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(student.firstName + ' ' + student.lastName)}&background=random`;
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(student.firstName + ' ' + student.lastName)}&background=random`}
+                            alt={`${student.firstName} ${student.lastName}`}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-medium text-white">
+                          {student.firstName} {student.lastName}
+                        </h3>
+                        <div className="space-y-2 mt-2">
+                          <div className="flex items-center text-gray-300 text-sm">
+                            <Building className="w-4 h-4 mr-2 text-blue-400" />
+                            {student.university} - {student.faculty}
+                          </div>
+                          <div className="flex items-center text-gray-300 text-sm">
+                            <BookOpen className="w-4 h-4 mr-2 text-purple-400" />
+                            {student.fieldOfStudy}
+                          </div>
+                          <div className="flex items-center text-gray-300 text-sm">
+                            <Mail className="w-4 h-4 mr-2 text-green-400" />
+                            {student.contactEmail}
+                          </div>
+                          <div className="flex items-center text-gray-300 text-sm">
+                            <Phone className="w-4 h-4 mr-2 text-yellow-400" />
+                            {student.contactPhoneNumber}
+                          </div>
+                        </div>
+                        {student.cvUrl && student.cvUrl.trim() !== '' && (
+                          <a
+                            href={student.cvUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 mt-3 px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <FileText size={14} />
+                            View CV
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                No students have applied to this activity yet
               </div>
             )}
           </div>

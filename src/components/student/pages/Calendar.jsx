@@ -18,7 +18,14 @@ import {
   Tag,
   Calendar as CalendarCheck,
   User,
-  Building
+  Building,
+  AlertTriangle,
+  BarChart3,
+  TrendingUp,
+  Award,
+  Target,
+  Star,
+  Zap
 } from "lucide-react";
 import { 
   format, 
@@ -43,7 +50,7 @@ import {
   setDate,
   parseISO
 } from 'date-fns';
-import { axiosInstance } from '../../../lib/axios';
+import { axiosInstance, chatAxiosInstance } from '../../../lib/axios';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -346,65 +353,255 @@ const EventMap = ({ event }) => {
   );
 };
 
-// Upcoming Events Component
-const UpcomingEvents = ({ events, countdown }) => {
+// Activity Insights Component
+const ActivityInsights = ({ activities }) => {
+  // Calculate insights
+  const calculateInsights = () => {
+    const now = new Date();
+    const upcomingActivities = activities.filter(a => parseISO(a.startDate) > now);
+    const pastActivities = activities.filter(a => parseISO(a.startDate) <= now);
+    
+    // Calculate activity types distribution
+    const typeDistribution = activities.reduce((acc, activity) => {
+      acc[activity.activityType] = (acc[activity.activityType] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Find most common activity type
+    const mostCommonType = Object.entries(typeDistribution)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'None';
+
+    return {
+      totalActivities: activities.length,
+      upcomingCount: upcomingActivities.length,
+      pastCount: pastActivities.length,
+      mostCommonType
+    };
+  };
+
+  const insights = calculateInsights();
+
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 shadow-xl h-full">
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 shadow-xl">
       <div className="mb-5">
-        <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight">
-          Upcoming Events
+        <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight flex items-center gap-2">
+          <BarChart3 className="w-6 h-6" />
+          Activity Insights
         </h2>
       </div>
 
-      <div className="space-y-4">
-        {events.map((event) => (
-          <div
-            key={event.id}
-            className="bg-gray-700/30 backdrop-blur-sm rounded-lg p-3 sm:p-4 hover:bg-gray-700/50 transition-all duration-200"
-          >
-            <div className="flex flex-col items-center text-center mb-3 sm:mb-4">
-              <Timer className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2" />
-              {countdown[event.id] ? (
-                <div className="text-xl sm:text-2xl font-bold text-blue-400 tracking-wider">
-                  {countdown[event.id].days}d {countdown[event.id].hours}h
-                </div>
-              ) : (
-                <div className="text-xl sm:text-2xl font-bold text-gray-400">Starting soon</div>
-              )}
-              {countdown[event.id] && (
-                <div className="text-xs sm:text-sm text-gray-300 mt-1">
-                  {countdown[event.id].minutes}m {countdown[event.id].seconds}s
-                </div>
-              )}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* Total Activities Card */}
+        <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl p-4 backdrop-blur-sm border border-blue-500/20">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-blue-500/20 rounded-lg">
+              <Target className="w-5 h-5 text-blue-400" />
             </div>
-
-            <div className="border-t border-gray-600/50 pt-3 sm:pt-4">
-              <h3 className="text-base sm:text-lg font-bold text-white mb-2">{event.title}</h3>
-              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-300">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                  {format(parseISO(event.startDate), 'MMM d, yyyy')}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                  {format(parseISO(event.startDate), 'h:mm a')}
-                </div>
-                {event.location && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {event.location}
-                  </div>
-                )}
-              </div>
-              
-              {/* Event Map */}
-              {(event.latitude && event.longitude) && (
-                <EventMap event={event} />
-              )}
-            </div>
+            <h3 className="text-sm font-medium text-gray-300">Total</h3>
           </div>
-        ))}
+          <p className="text-2xl font-bold text-white">{insights.totalActivities}</p>
+        </div>
+
+        {/* Upcoming Activities Card */}
+        <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl p-4 backdrop-blur-sm border border-green-500/20">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-green-500/20 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-green-400" />
+            </div>
+            <h3 className="text-sm font-medium text-gray-300">Upcoming</h3>
+          </div>
+          <p className="text-2xl font-bold text-white">{insights.upcomingCount}</p>
+        </div>
+
+        {/* Most Common Type Card */}
+        <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl p-4 backdrop-blur-sm border border-purple-500/20">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-purple-500/20 rounded-lg">
+              <Star className="w-5 h-5 text-purple-400" />
+            </div>
+            <h3 className="text-sm font-medium text-gray-300">Common</h3>
+          </div>
+          <p className="text-2xl font-bold text-white">{insights.mostCommonType}</p>
+        </div>
       </div>
+
+      {/* Motivational Quote Box */}
+      <div className="relative overflow-hidden rounded-xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-gradient-x"></div>
+        <div className="relative p-6 text-center">
+          <p className="text-lg font-medium text-white mb-2">
+            {insights.upcomingCount > 0 
+              ? "Stay organized and make the most of your upcoming activities!"
+              : "Time to plan your next adventure!"}
+          </p>
+          <p className="text-sm text-gray-300">
+            {insights.totalActivities > 0 
+              ? `You've participated in ${insights.totalActivities} activities so far. Keep going!`
+              : "Start your journey by joining your first activity!"}
+          </p>
+        </div>
+      </div>
+
+      <style>
+        {`
+          @keyframes gradient-x {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          .animate-gradient-x {
+            background-size: 200% 200%;
+            animation: gradient-x 15s ease infinite;
+          }
+        `}
+      </style>
+    </div>
+  );
+};
+
+// Right Sidebar Component
+const RightSidebar = ({ upcomingEvents, countdown, conflicts, activities }) => {
+  return (
+    <div className="space-y-6">
+      {/* Upcoming Events Section */}
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 shadow-xl">
+        <div className="mb-5">
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight">
+            Upcoming Events
+          </h2>
+        </div>
+
+        <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-4">
+            {upcomingEvents.map((event) => (
+              <div
+                key={event.id}
+                className="bg-gray-700/30 backdrop-blur-sm rounded-lg p-3 sm:p-4 hover:bg-gray-700/50 transition-all duration-200"
+              >
+                <div className="flex flex-col items-center text-center mb-3 sm:mb-4">
+                  <Timer className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2" />
+                  {countdown[event.id] ? (
+                    <div className="text-xl sm:text-2xl font-bold text-blue-400 tracking-wider">
+                      {countdown[event.id].days}d {countdown[event.id].hours}h
+                    </div>
+                  ) : (
+                    <div className="text-xl sm:text-2xl font-bold text-gray-400">Starting soon</div>
+                  )}
+                  {countdown[event.id] && (
+                    <div className="text-xs sm:text-sm text-gray-300 mt-1">
+                      {countdown[event.id].minutes}m {countdown[event.id].seconds}s
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-gray-600/50 pt-3 sm:pt-4">
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-2">{event.title}</h3>
+                  <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                      {format(parseISO(event.startDate), 'MMM d, yyyy')}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                      {format(parseISO(event.startDate), 'h:mm a')}
+                    </div>
+                    {event.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                        {event.location}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Event Map */}
+                  {(event.latitude && event.longitude) && (
+                    <EventMap event={event} />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Activity Insights Section */}
+      <ActivityInsights activities={activities} />
+
+      {/* Conflicts Section */}
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 shadow-xl">
+        <div className="mb-5">
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent tracking-tight">
+            Activity Conflicts
+          </h2>
+        </div>
+
+        <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          {!conflicts || conflicts.length === 0 ? (
+            <div className="text-center text-gray-400 py-8">
+              <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+              <p className="text-lg">No conflicts found in your activities</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {conflicts.map((conflict, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-700/30 backdrop-blur-sm rounded-lg p-4 hover:bg-gray-700/50 transition-all duration-200"
+                >
+                  <div className="space-y-3">
+                    {conflict.activities.map((activity, idx) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className={`w-2 h-2 rounded-full mt-2 ${
+                          idx === 0 ? 'bg-green-400' : 'bg-red-400'
+                        }`} />
+                        <div className="flex-1">
+                          <h3 className="text-base font-bold text-white mb-1">{activity.title}</h3>
+                          <div className="space-y-1 text-xs text-gray-300">
+                            <div className="flex items-center gap-2">
+                              <CalendarIcon className="w-3 h-3" />
+                              {format(parseISO(activity.start_date), 'MMM d, yyyy')}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-3 h-3" />
+                              {format(parseISO(activity.start_date), 'h:mm a')} - 
+                              {format(parseISO(activity.end_date), 'h:mm a')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="mt-3 pt-3 border-t border-gray-600/50">
+                      <div className="flex items-start gap-2 text-sm text-blue-400">
+                        <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <p>{conflict.recommendation}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>
+        {`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5);
+            border-radius: 3px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(107, 114, 128, 0.5);
+            border-radius: 3px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.7);
+          }
+        `}
+      </style>
     </div>
   );
 };
@@ -632,24 +829,33 @@ export default function Calendar() {
   const [countdown, setCountdown] = useState({});
   const [shakingEvent, setShakingEvent] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [conflicts, setConflicts] = useState([]);
 
-  // Fetch activities
+  // Fetch activities and conflicts
   useEffect(() => {
-    const fetchActivities = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance().post('/activity/student/my');
-        if (response.data.isSuccess) {
-          setActivities(response.data.data);
+        const [activitiesResponse, conflictsResponse] = await Promise.all([
+          axiosInstance().post('/activity/student/my'),
+          chatAxiosInstance().get('/activities/conflicts')
+        ]);
+        
+        if (activitiesResponse.data.isSuccess) {
+          setActivities(activitiesResponse.data.data);
+        }
+        
+        if (conflictsResponse.data) {
+          setConflicts(conflictsResponse.data.conflicts || []);
         }
       } catch (error) {
-        console.error('Error fetching activities:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchActivities();
+    fetchData();
   }, []);
 
   // Calculate countdown for each upcoming event
@@ -790,7 +996,8 @@ export default function Calendar() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Top Row: Calendar and Upcoming Events */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Calendar Section */}
           <div className="lg:col-span-2">
             <CalendarGrid 
@@ -805,11 +1012,127 @@ export default function Calendar() {
           </div>
 
           {/* Upcoming Events Section */}
-          <div className="mt-6 lg:mt-0">
-            <UpcomingEvents 
-              events={getUpcomingEvents()}
-              countdown={countdown}
-            />
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 shadow-xl">
+            <div className="mb-5">
+              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight">
+                Upcoming Events
+              </h2>
+            </div>
+
+            <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-4">
+                {getUpcomingEvents().map((event) => (
+                  <div
+                    key={event.id}
+                    className="bg-gray-700/30 backdrop-blur-sm rounded-lg p-3 sm:p-4 hover:bg-gray-700/50 transition-all duration-200"
+                  >
+                    <div className="flex flex-col items-center text-center mb-3 sm:mb-4">
+                      <Timer className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2" />
+                      {countdown[event.id] ? (
+                        <div className="text-xl sm:text-2xl font-bold text-blue-400 tracking-wider">
+                          {countdown[event.id].days}d {countdown[event.id].hours}h
+                        </div>
+                      ) : (
+                        <div className="text-xl sm:text-2xl font-bold text-gray-400">Starting soon</div>
+                      )}
+                      {countdown[event.id] && (
+                        <div className="text-xs sm:text-sm text-gray-300 mt-1">
+                          {countdown[event.id].minutes}m {countdown[event.id].seconds}s
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t border-gray-600/50 pt-3 sm:pt-4">
+                      <h3 className="text-base sm:text-lg font-bold text-white mb-2">{event.title}</h3>
+                      <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-300">
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                          {format(parseISO(event.startDate), 'MMM d, yyyy')}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                          {format(parseISO(event.startDate), 'h:mm a')}
+                        </div>
+                        {event.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                            {event.location}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Event Map */}
+                      {(event.latitude && event.longitude) && (
+                        <EventMap event={event} />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Row: Activity Insights and Conflicts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Activity Insights Section */}
+          <ActivityInsights activities={activities} />
+
+          {/* Conflicts Section */}
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 shadow-xl">
+            <div className="mb-5">
+              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent tracking-tight">
+                Activity Conflicts
+              </h2>
+            </div>
+
+            <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {!conflicts || conflicts.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+                  <p className="text-lg">No conflicts found in your activities</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {conflicts.map((conflict, index) => (
+                    <div
+                      key={index}
+                      className="bg-gray-700/30 backdrop-blur-sm rounded-lg p-4 hover:bg-gray-700/50 transition-all duration-200"
+                    >
+                      <div className="space-y-3">
+                        {conflict.activities.map((activity, idx) => (
+                          <div key={idx} className="flex items-start gap-3">
+                            <div className={`w-2 h-2 rounded-full mt-2 ${
+                              idx === 0 ? 'bg-green-400' : 'bg-red-400'
+                            }`} />
+                            <div className="flex-1">
+                              <h3 className="text-base font-bold text-white mb-1">{activity.title}</h3>
+                              <div className="space-y-1 text-xs text-gray-300">
+                                <div className="flex items-center gap-2">
+                                  <CalendarIcon className="w-3 h-3" />
+                                  {format(parseISO(activity.start_date), 'MMM d, yyyy')}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-3 h-3" />
+                                  {format(parseISO(activity.start_date), 'h:mm a')} - 
+                                  {format(parseISO(activity.end_date), 'h:mm a')}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="mt-3 pt-3 border-t border-gray-600/50">
+                          <div className="flex items-start gap-2 text-sm text-blue-400">
+                            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <p>{conflict.recommendation}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

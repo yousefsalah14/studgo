@@ -32,11 +32,6 @@ function MenuItems({ isCollapsed, pathname }) {
       icon: <UserPlus size={20} />,
       path: "/student-activity/followers",
     },
-    {
-      title: "Preferences",
-      icon: <Settings size={20} />,
-      path: "/student-activity/preferences",
-    },
   ];
 
   // Render menu item

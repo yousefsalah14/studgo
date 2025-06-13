@@ -84,7 +84,6 @@ function App() {
       { path: 'followers', element: <SaFollowers /> },
       { path: 'reports', element: <SaReports /> },
       { path: 'profile', element: <SaProfile /> },
-      { path: 'preferences', element: <Preferences /> },
     ],
   };
 

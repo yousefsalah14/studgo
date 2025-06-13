@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaComment, FaTimes, FaPaperPlane, FaTrash } from 'react-icons/fa';
 import { chatAxiosInstance } from '../../lib/axios';
+import ReactMarkdown from 'react-markdown';
 import './FloatingChat.css';
 
 const FloatingChat = () => {
@@ -205,7 +206,11 @@ const FloatingChat = () => {
                   className={`message ${message.isUser ? 'user-message' : 'bot-message'}`}
                 >
                   <div className="message-content">
-                    <p>{message.content}</p>
+                    {message.isUser ? (
+                      <p>{message.content}</p>
+                    ) : (
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    )}
                     <span className="timestamp">
                       {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>

@@ -19,7 +19,6 @@ import SaFollowers from './components/SA/pages/SaFollowers.jsx';
 import SaReports from './components/SA/pages/SaReports.jsx';
 import SaProfile from './components/SA/pages/SaProfile.jsx';
 import SaDashboard from './components/SA/pages/SaDashboard.jsx';
-import Preferences from './components/SA/pages/Preferences.jsx';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import {Toaster} from 'react-hot-toast'
 import ForgotPassword from './components/Auth/ForgetPassword.jsx';
